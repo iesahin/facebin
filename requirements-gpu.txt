@@ -1,0 +1,11 @@
+PySide2
+dlib
+# tensorflow-gpu
+tf-nightly-gpu
+opencv-contrib-python-headless
+sklearn
+keras
+matplotlib
+redis
+rq
+av

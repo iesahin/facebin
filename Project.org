@@ -1,0 +1,168 @@
+* How?
+
+
+* TODO make a encrypted licensing system
+
+** ~/usr/bin/emlc~ tool
+
+~emlc~ is selected because of shortness. It will be able to read machine
+specific information from ~/etc/machine-id~ or ~dmidecode -t basecard~ and
+return information by this. 
+
+#+begin_src shell :tangle yes
+
+$ emlc --machine-key $SOFTWAREPATH
+A723897B213C91209D23190
+$ emlc --file-hash $PATH
+712398B90123098C210398DA12308
+
+#+end_src
+
+~--machine-key /path/~ option returns a machine key generated with 
+
+/etc/machine-id
+dmidecode -t basecard
+and the given path. 
+
+~--file-hash /path/~ returns a machine and date specific file hash that we will
+check whether contents are tampered with.
+
+** Installation 
+
+*** Copy ~emlc~ to ~/usr/bin~
+
+*** Determine software path: e.g. ~EMPATH=/home/facebin/facebin~
+
+*** Generate the virtual environment: ~/home/facebin/facebin/env~
+
+*** Get an encryption key for ~EMPATH/mf.gpg~
+
+*** Encrypt all files in ~INSTALL~ dir to ~mf.gpg~ in ~$EMPATH~
+
+*** Copy extra Python files to ~EMPATH~
+
+*** Generate a license file with the contents of each file and date
+
+License file will contain hash keys for each file to check and the date specific information.
+
+For each file we will have a hash value per day. 
+
+*** Encrypt the license file with the machine key. 
+
+    
+
+
+
+This will decrypt the installation files with the key/certificate of the
+installation personnel. We don't need to trust the installation personnel.
+
+- Not trusting the installation personnel is overengineering. 2019-10-15 13:21:52
+
+- We will generate a monthly gpg certificate with the email address of the
+  personnel. This will decrypt the installation files.
+
+** License and Code Key
+
+- We will use the following information: 
+
+-- /etc/machine-id
+
+-- `dmidecode -t basecard`
+
+-- encrypted license file
+
+-- random string generated during install
+
+
+** Installation
+
+** Running
+
+- Check the license
+
+- Decrypt the code files to `/tmp/RANDOMDIR`
+
+- Activate the environment
+
+* DONE Try compiling with nuitka
+** I began compiling - 2019-11-06 16:54:54
+** it gives a numpy error. I restarted with the command
+python3 -m nuitka --standalone --plugin-enable=numpy --plugin-enable=pylint-warnings --plugin-enable=tensorflow --follow-imports facebin_gui.py
+
+Nuitka:INFO:'tensorflow' plugin: Patched 'running-from-pip' path magic.
+Nuitka:INFO:Injecting plug-in based pre load code for module 'pbr.packaging':
+Nuitka:INFO:    Monkey patching "pbr" version number.
+Problem with statement at /home/iesahin/Environments/facebin/lib/python3.6/site-packages/google/protobuf/__init__.py:1:
+-> # Protocol Buffers - Google's data interchange format
+
+Nuitka:INFO:Interrupted while working on '<Node 'COMPILED_PYTHON_PACKAGE' with {'filename': '/home/iesahin/Environments/facebin/lib/python3.6/site-packages/google/protobuf/__init__.py', 'package': 'google', 'name': 'protobuf'}>'.
+Traceback (most recent call last):
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/__main__.py", line 184, in <module>
+    main()
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/__main__.py", line 177, in main
+    MainControl.main()
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/MainControl.py", line 759, in main
+    main_module = createNodeTree(filename=filename)
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/MainControl.py", line 141, in createNodeTree
+    Optimization.optimize(main_module.getOutputFilename())
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/optimizations/Optimization.py", line 561, in optimize
+    finished = makeOptimizationPass(initial_pass=False)
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/optimizations/Optimization.py", line 456, in makeOptimizationPass
+    changed = optimizeModule(current_module)
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/optimizations/Optimization.py", line 167, in optimizeModule
+    changed = optimizeCompiledPythonModule(module)
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/optimizations/Optimization.py", line 100, in optimizeCompiledPythonModule
+    module.computeModule()
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/nodes/ModuleNodes.py", line 514, in computeModule
+    trace_collection=self.trace_collection
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/nodes/StatementNodes.py", line 167, in computeStatementsSequence
+    new_statement = trace_collection.onStatement(statement=statement)
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/optimizations/TraceCollections.py", line 549, in onStatement
+    new_statement, change_tags, change_desc = statement.computeStatement(self)
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/nodes/AssignNodes.py", line 261, in computeStatement
+    trace_collection.onExpression(self.getAssignSource())
+  File "/home/iesahin/Environments/facebin/lib/python3.6/site-packages/nuitka/optimizations/TraceCollections.py", line 525, in onExpression
+    parent = expression.parent
+AttributeError: parent
+
+** DONE I think nuitka is not usable for compiling this *huge* code base. I'm done. 2019-11-11 19:26:39
+
+* TODO Put a limit on recognition: distance < 500
+* TODO Password Login
+* TODO Add old data to the new dataset 
+* BUY PoE Ethernet for BGH
+* TODO We can write the description of camera here [[file:~/Repository/facebin/history_dialog.py::self.camera_name_label%20=%20qtw.QLabel("Camera%20{}".format(]]
+* TODO write an installation script @facebin
+* TODO Try sharing memory frames directly https://research.wmz.ninja/articles/2018/03/on-sharing-large-arrays-when-using-pythons-multiprocessing.html
+* TODO Training by adding faces from standard datasets
+* TODO write a script to download vgg faces
+* TODO add data augmentation to training
+
+* TODO Camera active region configuration
+We need to limit the camera's recognition region. 
+
+* TODO Try a new face detection library
+[Face detection library with speed of 1500FPS](https://github.com/ShiqiYu/libfacedetection)
+
+> This is an open source library for CNN-based face detection in images. The CNN
+> model has been converted to static variables in C source files. The source
+> code does not depend on any other libraries. What you need is just a C++
+> compiler. You can compile the source code under Windows, Linux, ARM and any
+> platform with a C++ compiler.
+>
+> SIMD instructions are used to speed up the detection. You can enable AVX2 if
+> you use Intel CPU or NEON for ARM.
+
+* TODO facebin implement triple loss
+
+Modeli yaptım sayılır. Hata veriyor ama loss fonksiyonunu kendim yazarak bu
+hatayı telafi edebilirim. Triplet loss'un nasıl bir input istediği konusunda bir
+fikrim yok, maalesef.
+
+Bu konuda kendi fonksiyonumu yazmak herhalde daha kolay olacak. Yarı arak, yarı
+kendim yaptığım bir loss fonksiyonunun daha iyi olacağına karar verdim. 
+
+** TODO facebin training for triplet loss
+** TODO facebin change to face rec v7 in all code
+* TODO facebin fix small form bounds
+* TODO facebin check the reason of segmentation fault

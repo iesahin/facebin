@@ -1,0 +1,179 @@
+#    -*- mode: org -*-
+
+
+Archived entries from file /home/iesahin/Repository/facebin/Project.org
+
+
+* DONE USE Tensorflow-gpu in Democritus 
+  CLOSED: [2018-11-16 Fri 10:36]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2018-12-17 Mon 11:25
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+Archived entries from file /home/iesahin/Repository/facebin/Project.org
+
+
+* DONE CONNECT cameras to Democritus
+  CLOSED: [2018-11-16 Fri 10:37]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2018-12-17 Mon 11:25
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+Archived entries from file /home/iesahin/Repository/facebin/Project.org
+
+
+* DONE BRING WebCam for Democritus
+  CLOSED: [2018-11-16 Fri 10:37]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2018-12-17 Mon 11:25
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Populate History Items with Image and Camera Links 
+  CLOSED: [2019-01-07 Mon 15:33]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-09 Wed 15:43
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Camera Name in History Table
+  CLOSED: [2019-01-07 Mon 15:33]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-09 Wed 15:43
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Exit button
+  CLOSED: [2019-01-07 Mon 15:33]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-09 Wed 15:43
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* Unknown Faces Dialog
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-09 Wed 15:44
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :END:
+** List Unknown Faces By Date
+** Check the Most Resembling Face (By Distance)
+** Add By Combobox
+
+* DONE Faster Face Detection https://github.com/yeephycho/tensorflow-face-detection
+  CLOSED: [2019-01-07 Mon 14:00]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-09 Wed 15:44
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+
+* DONE When we select Unknown, it doesn't show anything [[file:~/Repository/facebin/history_dialog.py::def%20populate_history_items(self):]]
+  CLOSED: [2019-01-09 Wed 15:44]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-09 Wed 15:44
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+
+* DONE Add New Faces in History Dialog
+  CLOSED: [2019-01-09 Wed 15:42]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-09 Wed 15:44
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+** Record new History data
+** Add Face to Dataset
+
+* DONE Fix names in History and Main Gui
+  CLOSED: [2019-01-11 Fri 13:13]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-17 Thu 10:34
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE make a screencast for the program
+  CLOSED: [2019-01-11 Fri 13:13]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-01-17 Thu 10:34
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Read camera frames directly from cameras
+  CLOSED: [2019-03-19 Tue 15:55]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-03-21 Thu 15:04
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Check FPS
+  CLOSED: [2019-03-19 Tue 15:55]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-03-21 Thu 15:04
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Retrain the model after adding faces
+  CLOSED: [2019-03-19 Tue 15:55]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-03-21 Thu 15:04
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Create a new branch for releases
+  CLOSED: [2019-01-31 Thu 10:28]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-03-21 Thu 15:04
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+* DONE Check camera reading time
+  CLOSED: [2019-01-26 Cts 12:03]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-03-21 Thu 15:04
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
+
+
+* DONE Store feature data in processed frames 
+  CLOSED: [2019-04-22 Pzt 16:43]
+  :PROPERTIES:
+  :ARCHIVE_TIME: 2019-05-09 Thu 15:50
+  :ARCHIVE_FILE: ~/Repository/facebin/Project.org
+  :ARCHIVE_CATEGORY: Project
+  :ARCHIVE_TODO: DONE
+  :END:
