@@ -57,12 +57,20 @@ def reader_loop(camera_id, camera_device, max_fps=25):
     # SKIP NONKEY FRAMES
     # container.streams.video[0].codec_context.skip_frame = 'NONKEY'
     camera_prev_time = time.time()
-    skip_threshold = 2
+    skip_threshold = 10
+    skips_before_quit = 100
+    skips = 0
     min_delay = 1.0 / max_fps
     for frame in container.decode(video=0):
         if rqu.queue_length(rqu.CAMERA_QUEUE) > skip_threshold:
             log.warning("Waiting other elements to catch up")
             time.sleep(min_delay)
+            skips += 1
+            if skips >= skips_before_quit:
+                log.warning("Seems no one is cleaning up the queue")
+                exit()
+        else:
+            skips = 0
 
         if frame.dts is None:
             continue
@@ -74,9 +82,9 @@ def reader_loop(camera_id, camera_device, max_fps=25):
 
         camera_diff = camera_current_time - camera_prev_time
         fps = 1 / (camera_diff)
-        log.debug("Cam Time %s: %s", camera_id, camera_diff)
-        log.debug("FPS %s: %s", camera_id, fps)
-        log.debug("frame.dts: %s", frame.dts)
+        # log.debug("Cam Time %s: %s", camera_id, camera_diff)
+        # log.debug("FPS %s: %s", camera_id, fps)
+        # log.debug("frame.dts: %s", frame.dts)
 
         current_video_filename = get_video_filename(frame.dts, camera_id)
 

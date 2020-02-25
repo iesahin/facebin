@@ -68,38 +68,34 @@ class VideoPresentationWidget(qtw.QWidget):
     def timerEvent(self, event):
         if (event.timerId() != self.timer.timerId()):
             return
-        ## TODO: We can convert this to a time based skip
-        key, score = rqu.get_next_key(self.input_queue)
-        if key is None:
-            return
-
-        l = R.zcount(self.input_queue, score, score + 1000)
-        # log.debug("List Length for %s: %s", self.list_key, l)
+        l = R.zcount(self.input_queue, "-inf", "+inf")
+        log.debug("List Length for %s: %s", self.input_queue, l)
         if l > self.refresh_threshold:
             # Delete all keys without processing
             log.warning("Refresh Threshold Reached for %s", self.camera_id)
             skip_keys = R.zrange(
-                self.input_queue, 0, self.refresh_threshold, withscores=True)
+                self.input_queue, 0, l-1, withscores=True)
             for key, score in skip_keys:
                 R.zrem(self.input_queue, key)
                 fields = R.hkeys(key)
                 R.hdel(key, *fields)
-        else:
-            key, score = rqu.get_next_key(self.input_queue, delete=True)
-            if key is not None:
-                image_data = rqu.get_frame_image(key, name='processed_image')
-                if image_data is None:
-                    image_data = rqu.get_frame_image(key, name='image')
-                qs = self.size()
-                image_data = cv2.resize(image_data, (qs.width(), qs.height()))
-                self.image = get_qimage(image_data)
-                log.debug("R.zcount(self.output_queue, 0, 'inf'): %s",
-                          R.zcount(self.output_queue, 0, "inf"))
-                R.zrem(self.input_queue, key)
-                R.zadd(self.output_queue, {key: score})
-                log.debug("R.zcount(self.output_queue, 0, 'inf'): %s",
-                          R.zcount(self.output_queue, 0, "inf"))
-                self.update()
+
+        key, score = rqu.get_next_key(self.input_queue)
+        if key is None:
+            return
+
+        image_data = rqu.get_frame_image(key, name='processed_image')
+        if image_data is None:
+            image_data = rqu.get_frame_image(key, name='image')
+        qs = self.size()
+        image_data = cv2.resize(image_data, (qs.width(), qs.height()))
+        self.image = get_qimage(image_data)
+        # log.debug("R.zcount(self.output_queue, 0, 'inf'): %s", R.zcount(self.output_queue, 0, "inf"))
+        R.zrem(self.input_queue, key)
+        R.zadd(self.output_queue, {key: score})
+        # log.debug("R.zcount(self.output_queue, 0, 'inf'): %s",
+        #            R.zcount(self.output_queue, 0, "inf"))
+        self.update()
 
     def paintEvent(self, event):
         painter = qtg.QPainter(self)

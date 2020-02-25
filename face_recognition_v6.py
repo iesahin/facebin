@@ -415,7 +415,7 @@ def face_recognition_loop():
     prev_faces_used = 100
     R = rqu.R
     input_queue = rqu.CAMERA_QUEUE
-    RECOGNITION_THRESHOLD = 500
+    RECOGNITION_THRESHOLD = 400
     while True:
         l = R.zcount(input_queue, 0, "inf")
         key, score = rqu.get_next_key(input_queue, delete=True)
