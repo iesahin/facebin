@@ -48,6 +48,35 @@ class FaceDetectorTensorflow:
                 graph=self.detection_graph, config=utils.tensorflow_config())
             self.windowNotSet = True
 
+    def export_tflite(self):
+        assert self.detection_graph
+        image_tensor = self.detection_graph.get_tensor_by_name(
+            'image_tensor:0')
+        boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+        scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
+        classes = self.detection_graph.get_tensor_by_name(
+            'detection_classes:0')
+        num_detections = self.detection_graph.get_tensor_by_name(
+            'num_detections:0')
+
+        # We need a definite shape for input
+
+        image_tensor.set_shape((640, 480, 100, 3))
+        input_tensors = [image_tensor]
+        output_tensors = [boxes, scores, classes, num_detections]
+        output_node_names = ['detection_boxes', 'detection_scores', 'detection_classes', 'num_detections']
+        for t in input_tensors + output_tensors:
+            print(t.shape)
+
+        with tf.Session(graph=self.detection_graph) as sess:
+            frozen_graph_def = tf.graph_util.convert_variables_to_constants(
+                    sess, sess.graph_def, output_node_names)
+
+        tflite_model = tf.lite.toco_convert(frozen_graph_def, input_tensors, output_tensors)
+
+        open("facebin_detect_v1.tflite", "wb").write(tflite_model)
+
+
     def detect_faces(self, image: np.ndarray):
         # We reduce the size of the image
         larger_side = max(image.shape[0], image.shape[1])
@@ -305,7 +334,8 @@ def faces_from_video_file(video_filename: str):
     """ get the list of face images from video keyframes
 
     @return list of ndarrays
-    >>> video_filename = os.path.expandvars("$HOME/Repository/facebin/test-input/camera-2018-10-23-11-44-19-470021.mpeg")
+    >>> video_filename = os.path.expandvars("$HOME/Repository/facebin/test-input/"
+        "camera-2018-10-23-11-44-19-470021.mpeg")
     >>> faces = faces_from_video_file(video_filename)
     >>> len(faces)
     95
@@ -326,7 +356,6 @@ def faces_from_video_file(video_filename: str):
         os.remove(f)
 
     return result
-
 
 # def face_detection_loop():
 #     R = redis.Redis(host='localhost', port=6379)
@@ -369,7 +398,7 @@ def faces_from_video_file(video_filename: str):
 #             R.rpush('facekeys', facekey)
 #             log.debug("R.llen(facekeys): %s", R.llen('facekeys'))
 
-# if __name__ == "__main__":
-#     face_detection_loop()
-#     # import doctest
-#     # doctest.testmod()
+if __name__ == "__main__":
+     # face_detection_loop()
+     fd = FaceDetectorTensorflow()
+     fd.export_tflite()
