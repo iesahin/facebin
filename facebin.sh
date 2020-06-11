@@ -1,13 +1,13 @@
 #!/bin/zsh
 
-MKMF=$HOME/Repository/facebin
-ENV=$MKMF/env/bin/
-cd $MKMF
+FCBF=$HOME/Repository/facebin
+ENV=$FCBF/env/bin/
+cd $FCBF
 source $ENV/activate
 
-git -C $MKMF pull
+git -C $FCBF pull
 
-LOGDIR=$MKMF/logs/$(date +"%F-%H-%M-%S")
+LOGDIR=$FCBF/logs/$(date +"%F-%H-%M-%S")
 mkdir -p $LOGDIR
 
-$ENV/python3 $MKMF/main_gui.py 1>$LOGDIR/main_gui.out 2>$LOGDIR/main_gui.err
+$ENV/python3 $FCBF/facebin_gui.py 1>$LOGDIR/facebin_gui.out 2>$LOGDIR/facebin_gui.err
