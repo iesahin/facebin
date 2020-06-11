@@ -10,7 +10,7 @@ sudo apt install python3-venv python3-tk python3-pip
 sudo apt install redis
 sudo apt install ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
 sudo apt install cmake
-sudo apt install emacs zsh tmux 
+sudo apt install zsh tmux 
 
 
 if [[ ! -d $facebin_DIR ]] ; then
