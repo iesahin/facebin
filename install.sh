@@ -4,6 +4,7 @@ facebin_DIR=$HOME/Repository/facebin
 DLIB_DIR=$HOME/Software/dlib
 OPENCV_DIR=$HOME/Software/opencv
 ENVIRONMENT_DIR=$HOME/Repository/facebin/env
+MODEL_DOWNLOAD_PREFIX=https://
 
 sudo apt install pkg-config
 sudo apt install python3-venv python3-tk python3-pip

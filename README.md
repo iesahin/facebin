@@ -23,4 +23,12 @@ This software is a Python Desktop Application and Server that uses Tensorflow, R
 
 `database_api.py`: Provides database access functions
 
+`dataset_manager_v3.py`: Provides training dataset access functions. 
+
+`export.py`: Exports the dataset to image files to `~/facebin-artifacts/export-$(time.time)`
+
+`face_detection.py`: Contains Tensorflow and Haar based classes for face detection. Receives image files from Redis queue, runs face detection on them and stores there again. 
+
+`face_recognition_v6.py`: Receives 
+
 `facebin_init.py`: It adds `CUDA` paths to `$PATH` and imports tensorflow afterwards. 

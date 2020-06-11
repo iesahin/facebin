@@ -1,3 +1,25 @@
+import redis_queue_utils as rqu
+import rq
+import redis
+import video_recorder
+import history_recorder
+import camera_reader
+import camera_controller as cc
+import history_dialog as hd
+import person_dialog as pd
+import camera_dialog as cd
+import database_api as db
+import face_recognition_v6 as fr6
+from PySide2.QtCore import Signal, Slot
+from PySide2 import QtGui as qtg
+from PySide2 import QtWidgets as qtw
+from PySide2 import QtCore as qtc
+import multiprocessing as mp
+import io
+import time
+import datetime as dt
+import numpy as np
+import cv2
 import sys
 from os import path
 import os
@@ -7,35 +29,6 @@ from utils import *
 log = init_logging()
 log.debug("os.environ: %s", os.environ)
 
-import cv2
-import numpy as np
-import datetime as dt
-import os
-import time
-import io
-import multiprocessing as mp
-
-from PySide2 import QtCore as qtc
-from PySide2 import QtWidgets as qtw
-from PySide2 import QtGui as qtg
-from PySide2.QtCore import Signal, Slot
-
-import face_recognition_v6 as fr6
-import database_api as db
-
-import camera_dialog as cd
-import person_dialog as pd
-import history_dialog as hd
-
-import camera_controller as cc
-import camera_reader
-
-import history_recorder
-import video_recorder
-
-import redis
-import rq
-import redis_queue_utils as rqu
 
 R = redis.Redis(host='localhost', port=6379)
 VIDEO_RECORD_TIMEOUT = 3600
@@ -228,7 +221,8 @@ class HistoryTable(qtw.QTableWidget):
         self._face_image_w = 224
         self._face_image_h = 224
         self.unknown_face_image = qtg.QImage("default_profile_400x400.png")
-        self.unknown_face_image = self.unknown_face_image.scaled(self._face_image_w, self._face_image_h)
+        self.unknown_face_image = self.unknown_face_image.scaled(
+            self._face_image_w, self._face_image_h)
         self._history_records = {}
         self._history_keys = {}
         self._dataset_images = {}
@@ -271,7 +265,7 @@ class HistoryTable(qtw.QTableWidget):
             log.debug("r.keys(): %s", r.keys())
             person_id = int(r['person_id'])
             log.debug("r['person_id']: %s", r['person_id'])
-            log.debug("person_id: %s", person_id) 
+            log.debug("person_id: %s", person_id)
             if 'name' not in r:
                 if person_id < 0:
                     title = ""
@@ -290,7 +284,8 @@ class HistoryTable(qtw.QTableWidget):
             if person_id >= 0:
                 if k not in self._dataset_images:
                     log.debug("r['feature_id']: %s", r['feature_id'])
-                    di = db.person_face_image_by_feature_id(int(r['feature_id']))[0][2]
+                    di = db.person_face_image_by_feature_id(
+                        int(r['feature_id']))[0][2]
                     log.debug("di: %s", di)
                     self._dataset_images[k] = di
                     r['dataset_image'] = di
@@ -308,14 +303,15 @@ class HistoryTable(qtw.QTableWidget):
                 log.debug("face_key: %s", face_key)
                 face_i = int(r['face_i'])
                 log.debug("face_i: %s", face_i)
-                image_data = rqu.get_frame_image(face_key, name=rqu.face_image_k(face_i))
+                image_data = rqu.get_frame_image(
+                    face_key, name=rqu.face_image_k(face_i))
                 log.debug("image_data.shape: %s", image_data.shape)
-                image_data = cv2.resize(image_data, (self._face_image_w, self._face_image_h))
+                image_data = cv2.resize(
+                    image_data, (self._face_image_w, self._face_image_h))
                 log.debug("image_data.shape: %s", image_data.shape)
                 ci = get_qimage(image_data)
                 r['camera_image'] = ci
                 self._camera_images[k] = ci
-
 
             log.debug("r['camera_image'].size(): %s", r['camera_image'].size())
             name_label = qtw.QLabel(r['name'])
@@ -323,7 +319,8 @@ class HistoryTable(qtw.QTableWidget):
             log.debug("r['camera_id']: %s", r['camera_id'])
             camera_label = qtw.QLabel(r['camera_id'].decode('utf-8'))
             log.debug("camera_label: %s", camera_label)
-            ts_text = dt.datetime.fromtimestamp(float(r['timestamp'])).strftime("%F %T")
+            ts_text = dt.datetime.fromtimestamp(
+                float(r['timestamp'])).strftime("%F %T")
             ts_label = qtw.QLabel(ts_text)
             log.debug("ts_label: %s", ts_label)
             person_image_label = qtw.QLabel()
@@ -378,9 +375,10 @@ class HistoryTable(qtw.QTableWidget):
         log.debug("event.timerId(): %s", event.timerId())
         log.debug("self.timerId: %s", self.timerId)
         if (event.timerId() != self.timerId):
-             return
+            return
 
-        log.debug("R.zcount(rqu.HISTORY_RECORDING_QUEUE): %s", R.zcount(rqu.HISTORY_RECORDING_QUEUE, 0, "inf"))
+        log.debug("R.zcount(rqu.HISTORY_RECORDING_QUEUE): %s",
+                  R.zcount(rqu.HISTORY_RECORDING_QUEUE, 0, "inf"))
         history_keys = R.zrevrange(rqu.HISTORY_RECORDING_QUEUE, 0, 1000, True)
         log.debug("history_keys: %s", history_keys)
         # changed_keys = {}
@@ -416,7 +414,8 @@ class HistoryTable(qtw.QTableWidget):
         log.debug("r.keys(): %s", r.keys())
         person_id = int(r['person_id'])
         log.debug("person_id: %s", person_id)
-        random_image_filename = '/tmp/facebin-img-{}.png'.format(random.randint(10000, 100000))
+        random_image_filename = '/tmp/facebin-img-{}.png'.format(
+            random.randint(10000, 100000))
         log.debug("random_image_filename: %s", random_image_filename)
         camera_image = self._camera_images[record_key]
         camera_image.save(random_image_filename)
@@ -427,7 +426,8 @@ class HistoryTable(qtw.QTableWidget):
 
         log.debug("random_image_filename: %s", random_image_filename)
         log.debug("self.main_form: %s", self.main_form)
-        add_person_res = pd.ImageListDialog.AddPersonImage(new_person_id, random_image_filename, parent=self)
+        add_person_res = pd.ImageListDialog.AddPersonImage(
+            new_person_id, random_image_filename, parent=self)
         log.debug("add_person_res: %s", add_person_res)
         if add_person_res:
             self.main_form.check_recognizer_processes(force_restart=True)
@@ -437,19 +437,20 @@ class HistoryTable(qtw.QTableWidget):
         record_key = button.record_key
         r = self._history_records[record_key]
         log.debug("r.keys(): %s", r.keys())
-        random_image_filename = '/tmp/facebin-img-{}.png'.format(random.randint(10000, 100000))
+        random_image_filename = '/tmp/facebin-img-{}.png'.format(
+            random.randint(10000, 100000))
         log.debug("random_image_filename: %s", random_image_filename)
         camera_image = self._camera_images[record_key]
         camera_image.save(random_image_filename)
- 
+
         new_person_id = pd.PersonDetailsDialog.AddPerson(self)
         log.debug("new_person_id: %s", new_person_id)
         if new_person_id is not None:
-            add_person_res = pd.ImageListDialog.AddPersonImage(new_person_id, random_image_filename, parent=self)
+            add_person_res = pd.ImageListDialog.AddPersonImage(
+                new_person_id, random_image_filename, parent=self)
             log.debug("add_person_res: %s", add_person_res)
             if add_person_res:
                 self.main_form.check_recognizer_processes(force_restart=True)
-
 
     def details_button_callback(self):
         button = self.sender()
@@ -584,11 +585,12 @@ class MainWidget(qtw.QWidget):
                 log.debug("Camera Process %s with PID %s is alive", cpk,
                           cp.pid)
 
-        log.debug("Camera Queue Length: %s", rqu.queue_length(rqu.CAMERA_QUEUE))
+        log.debug("Camera Queue Length: %s",
+                  rqu.queue_length(rqu.CAMERA_QUEUE))
         for cpk in self.camera_reader_processes:
             log.debug("Recognizer(%s) Queue Length: %s", cpk,
                       rqu.queue_length(rqu.RECOGNIZER_QUEUE(cpk)))
-    
+
     def check_recognizer_processes(self, force_restart=False):
 
         for rk, rp in self.recognizer_processes.items():
@@ -650,7 +652,6 @@ class MainWidget(qtw.QWidget):
         self.check_recognizer_processes(force_restart=False)
 
         self.check_history_processes(force_restart=False)
-
 
     def closeEvent(self, event):
         log.debug("camera_controllers: %s", self.camera_controllers)

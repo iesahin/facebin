@@ -1,1 +1,0 @@
-facebin-artifacts/frozen_inference_graph_face.pb

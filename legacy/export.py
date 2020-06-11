@@ -2,13 +2,12 @@ import database_api
 import os
 import cv2
 import time
-import face_recognition_v2 as fr2
-import dataset_manager_v2 as dm2
+import face_recognition_v6 as fr6
 import face_detection as fd
 
-import dataset_manager_v2 as dm2
+import dataset_manager_v3 as dm3
 
-DM = dm2.DatasetManager()
+DM = dm3.DatasetManager_v3()
 
 person_list = database_api.person_list()
 export_dir = "facebin-artifacts/export-{}/".format(time.time())
