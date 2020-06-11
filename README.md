@@ -13,4 +13,14 @@ This software is a Python Desktop Application and Server that uses Tensorflow, R
 
 `facebin.sh`: Runs the desktop application by activating the environment and running python command. Keeps logs in `FACEBIN_DIR/logs/$(date)`
 
-`facebin_gui.py`: Creates the gui and runs the servers  
+`facebin_gui.py`: Creates the gui and runs the servers. Main entrance of the software. 
+
+`camera_controller.py`: A class to manage cameras and start/stop them using `libav`
+
+`camera_dialog.py`: A Qt dialog to control up to 4 cameras
+
+`camera_reader.py`: Uses `libav` to read frames from cameras and puts them to Redis server in localhost
+
+`database_api.py`: Provides database access functions
+
+`facebin_init.py`: It adds `CUDA` paths to `$PATH` and imports tensorflow afterwards. 
