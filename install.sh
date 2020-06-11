@@ -4,7 +4,8 @@ facebin_DIR=$HOME/Repository/facebin
 DLIB_DIR=$HOME/Software/dlib
 OPENCV_DIR=$HOME/Software/opencv
 ENVIRONMENT_DIR=$HOME/Repository/facebin/env
-MODEL_DOWNLOAD_PREFIX=https://
+MODEL_DIR=${facebin_DIR}/models
+MODEL_DOWNLOAD_PREFIX="https://facebin-artifacts.s3.amazonaws.com/models"
 
 sudo apt install pkg-config
 sudo apt install python3-venv python3-tk python3-pip
@@ -33,6 +34,18 @@ if [[ -d /usr/local/cuda ]] ; then
 else
     pip3 install -r $facebin_DIR/requirements.txt
 fi
+
+## DOWNLOAD MODEL FILES
+
+if [[ ! -d $MODEL_DIR ]] ; then
+    mkdir -p $MODEL_DIR
+fi
+
+for f in face_label_map.pbtxt frozen_inference_graph_face.pb haarcascade_frontalface_default.xml keras_vggface mmod_human_face_detector.dat vgg_face_weights.h5 ; do
+    if [[ ! -f $MODEL_DIR/${f} ]] ; then
+        curl $MODEL_DOWNLOAD_PREFIX/${f} -o $MODEL_DIR/${f}
+    fi
+done
 
 ## CC=/usr/bin/cc pip3 install -r $facebin_DIR/requirements.txt
 ## 
