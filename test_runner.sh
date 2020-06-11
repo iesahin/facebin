@@ -20,7 +20,7 @@ if [[ $NEW_SHA1 != $facebin_CURRENT_SHA1 ]] ; then
     CUDA_VISIBLE_DEVICES=1 python3 /home/iesahin/Repository/facebin/face_recognition_v3.py > $outfile
     ntfy -t "facebin done: $(date +%H:%M)" send "$(tail $outfile)"
     debugfile=$(ls -t1 /tmp/facebin-debug-* | head -n 1)
-    filename="facebin ${NEW_SHA1[8,14]} @$(hostname) Publish Results.cres"
+    filename="facebin ${NEW_SHA1[8,14]} @$(hostname) Test Results.cres"
     mv $outfile "$HOME/org/INBOX/${filename}"
     mv $debugfile "$HOME/org/INBOX/debug-${filename}"
     echo $NEW_SHA1 > $sha1f
