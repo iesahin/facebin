@@ -29,6 +29,18 @@ This software is a Python Desktop Application and Server that uses Tensorflow, R
 
 `face_detection.py`: Contains Tensorflow and Haar based classes for face detection. Receives image files from Redis queue, runs face detection on them and stores there again. 
 
-`face_recognition_v6.py`: Receives 
+`facebin.db`: SQLite database that contains basic information about recognized persons and their images. Also some configuration is done here. 
+
+`face_recognition_v6.py`: Receives faces from Redis, recognizes them using Tensorflow model and puts their information to redis
+
+`redis_queue_utils.py`: Higher level functions to manage image queues in Redis. 
+
+`requirements-gpu.txt`: Python pip requirements file for GPU based recognition libraries
+
+`requirements.txt`: Python pip requirements file for CPU based recognition libraries
+
+`show_image_dialog.py`: Simple QT dialog to show Numpy or QImage based images
+
+`
 
 `facebin_init.py`: It adds `CUDA` paths to `$PATH` and imports tensorflow afterwards. 

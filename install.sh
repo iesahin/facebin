@@ -41,7 +41,7 @@ if [[ ! -d $MODEL_DIR ]] ; then
     mkdir -p $MODEL_DIR
 fi
 
-for f in face_label_map.pbtxt frozen_inference_graph_face.pb haarcascade_frontalface_default.xml keras_vggface mmod_human_face_detector.dat vgg_face_weights.h5 ; do
+for f in string_int_label_map_pb2.py face_label_map.pbtxt frozen_inference_graph_face.pb haarcascade_frontalface_default.xml keras_vggface mmod_human_face_detector.dat vgg_face_weights.h5 ; do
     if [[ ! -f $MODEL_DIR/${f} ]] ; then
         curl $MODEL_DOWNLOAD_PREFIX/${f} -o $MODEL_DIR/${f}
     fi
