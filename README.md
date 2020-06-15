@@ -41,6 +41,8 @@ This software is a Python Desktop Application and Server that uses Tensorflow, R
 
 `show_image_dialog.py`: Simple QT dialog to show Numpy or QImage based images
 
-`
+`history_dialog.py`: Shows timestamp, person, image information for the recognized faces. It retrieves these from the database. 
+
+`history_recorder.py`: One of the elements of server processes. Retrieves the recognized faces from Redis and records them to database. 
 
 `facebin_init.py`: It adds `CUDA` paths to `$PATH` and imports tensorflow afterwards. 
