@@ -47,4 +47,14 @@ This software is a Python Desktop Application and Server that uses Tensorflow, R
 
 `import.py`: Imports the initial dataset from a directory by creating necessary DatasetManager object and importing the information.
 
+`utils.py`: various utilities 
+
+`person_dialog.py`: Shows information about a particular person.
+
+`video_recorder.py`: Records footage videos to a directory
+
+`visualization_utils_color.py`: To draw on images 
+
+`watch-image-dir.sh`: Watches the changes to a directory and sends the new images using email
+
 `facebin_init.py`: It adds `CUDA` paths to `$PATH` and imports tensorflow afterwards. 

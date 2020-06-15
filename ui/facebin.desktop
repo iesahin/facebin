@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Terminal=true
+Name=Facebin
+Icon=/home/makim/Repository/facebin/default_profile_400x400.png
+Exec=/home/makim/Repository/facebin/facebin.sh
+
