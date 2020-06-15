@@ -1,22 +1,21 @@
 import numpy as np
 import numpy.random as nr
-import PySide2.QtGui as qtg
 import cv2
 import datetime as dt
 import os
 import re
 import random
 import glob
-import database_api as db
-import face_detection as fd
+from . import database_api as db
+from . import face_detection as fd
 import pandas as pd
 import keras
-from utils import *
+from .utils import *
 import logging
 import hashlib
 
 import configparser as cp
-import face_recognition_v6 as fr6
+from . import face_recognition_v6 as fr6
 
 log = init_logging()
 
@@ -64,7 +63,8 @@ ImageDataGenerator of Keras.
             log.debug("Loading From: %s", self.FEATURE_FILE)
             self.feature_array = np.load(self.FEATURE_FILE)['feature_array']
         else:
-            log.warning("Cannot Find %s. Recreating Dataset", self.FEATURE_FILE)
+            log.warning("Cannot Find %s. Recreating Dataset",
+                        self.FEATURE_FILE)
             self.feature_array = np.empty((0, self.FEATURE_SIZE))
 
     def add_user_image(self, person_id, image, add_face_also=False):
@@ -116,7 +116,7 @@ ImageDataGenerator of Keras.
                            super_image_id=None,
                            feature=None):
         face_file = self._user_face_image_file(person_id, face_image)
-        log.debug("face_file: %s", face_file) 
+        log.debug("face_file: %s", face_file)
         cv2.imwrite(face_file, face_image)
         last_index = None
         log.debug("face_image.shape: %s", face_image.shape)
@@ -134,7 +134,7 @@ ImageDataGenerator of Keras.
             log.warning("Adding face without feature to the dataset!")
             last_index = None
 
-        log.debug("last_index: %s", last_index) 
+        log.debug("last_index: %s", last_index)
         log.debug("self.feature_array.shape: %s", self.feature_array.shape)
         face_image_id = db.insert_image(
             person_id=person_id,
@@ -146,14 +146,13 @@ ImageDataGenerator of Keras.
             super_image_id=super_image_id)
         self.save_dataset()
 
-
     def add_face_file_to_person(self,
                                 person_id,
                                 face_image_path,
                                 super_image_id=None,
                                 feature=None):
         face_image = cv2.imread(face_image_path)
-        log.debug("face_image.shape: %s", face_image.shape) 
+        log.debug("face_image.shape: %s", face_image.shape)
         assert face_image.shape == (self.IMAGE_SIZE[0], self.IMAGE_SIZE[1], 3)
         self.add_face_to_person(person_id, face_image, super_image_id, feature)
 
@@ -161,20 +160,21 @@ ImageDataGenerator of Keras.
         assert self.encoder is not None
 
         faces_without_features = db.person_face_images_without_features()
-        log.debug("len(faces_without_features): %s", len(faces_without_features)) 
+        log.debug("len(faces_without_features): %s",
+                  len(faces_without_features))
 
         if len(faces_without_features) > 0:
             for image_id, person_id, path, is_face, feature_id in faces_without_features:
-                log.debug("image_id: %s", image_id) 
+                log.debug("image_id: %s", image_id)
                 face_image = cv2.imread(path)
-                log.debug("path: %s", path) 
+                log.debug("path: %s", path)
                 feature = self.encoder.encode(face_image)
                 self.feature_array = np.vstack([self.feature_array, feature])
                 last_index = self.feature_array.shape[0] - 1
-                log.debug("last_index: %s", last_index) 
+                log.debug("last_index: %s", last_index)
                 db.update_face_image_feature_id(image_id, last_index)
 
-                log.debug("saving dataset") 
+                log.debug("saving dataset")
                 self.save_dataset()
 
     def create_missing_face_images(self):

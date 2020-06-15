@@ -1,4 +1,29 @@
-from utils import *
+import keras_vggface as kvgg
+from keras_vggface.vggface import VGGFace
+from keras.applications.imagenet_utils import preprocess_input
+from keras.preprocessing.image import load_img, save_img, img_to_array, ImageDataGenerator
+from keras.layers import Input
+from keras.engine import Model
+import redis
+from . import redis_queue_utils as rqu
+from . import face_detection as fd
+from . import dataset_manager_v3 as ds3
+from . import database_api as db
+import shutil
+import sys
+import pickle
+import time
+import os
+import cv2
+from sklearn.calibration import CalibratedClassifierCV
+import sklearn.gaussian_process as skgp
+import sklearn.neural_network as sknn
+import sklearn.linear_model as sklm
+import sklearn.ensemble as ske
+import sklearn.svm as svm
+import sklearn.neighbors as skn
+import numpy as np
+from .utils import *
 log = init_logging()
 # import tensorflow as tf
 # import keras.backend.tensorflow_backend
@@ -13,13 +38,6 @@ log = init_logging()
 #     keras.backend.tensorflow_backend.get_session()._config.gpu_options.
 #     allow_growth)
 
-import numpy as np
-import sklearn.neighbors as skn
-import sklearn.svm as svm
-import sklearn.ensemble as ske
-import sklearn.linear_model as sklm
-import sklearn.neural_network as sknn
-import sklearn.gaussian_process as skgp
 # log.debug(
 #     "mem_frac: %s",
 #     keras.backend.tensorflow_backend.get_session()._config.gpu_options.
@@ -29,19 +47,7 @@ import sklearn.gaussian_process as skgp
 #     keras.backend.tensorflow_backend.get_session()._config.gpu_options.
 #     allow_growth)
 
-from sklearn.calibration import CalibratedClassifierCV
-import cv2
-import os
-import time
-import pickle
-import sys
-import shutil
 
-import database_api as db
-import dataset_manager_v3 as ds3
-import face_detection as fd
-import redis
-import redis_queue_utils as rqu
 # log.debug(
 #     "mem_frac: %s",
 #     keras.backend.tensorflow_backend.get_session()._config.gpu_options.
@@ -53,12 +59,6 @@ import redis_queue_utils as rqu
 
 # import vgg_face_encoder
 
-from keras.engine import Model
-from keras.layers import Input
-from keras.preprocessing.image import load_img, save_img, img_to_array, ImageDataGenerator
-from keras.applications.imagenet_utils import preprocess_input
-from keras_vggface.vggface import VGGFace
-import keras_vggface as kvgg
 
 # from libKMCUDA import kmeans_cuda, knn_cuda
 
@@ -274,7 +274,7 @@ class FaceRecognizer_v6:
             self.train()
             self.save_model()
 
-        log.debug("Adding missing face features:") 
+        log.debug("Adding missing face features:")
         self.dataset.add_missing_face_features()
 
         if retrain:

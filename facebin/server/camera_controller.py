@@ -1,5 +1,5 @@
 import subprocess as sp
-import database_api as db
+from . import database_api as db
 import re
 import os
 import datetime as dt
@@ -63,9 +63,6 @@ class CameraController:
     def stderr_r(self):
         return self.stderr_file.read()
 
-    stdout = Property(str, stdout_r, None)
-    stderr = Property(str, stderr_r, None)
-
     def update_name(self, name):
         self.name = name
 
@@ -90,7 +87,7 @@ def get_camera_controllers(config_filename=None):
     config = cp.ConfigParser()
 
     log.debug(config_filename)
-   if os.path.exists(config_filename):
+    if os.path.exists(config_filename):
         config.read(config_filename)
     else:
         config['camera1'] = {

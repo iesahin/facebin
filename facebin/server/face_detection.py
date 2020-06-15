@@ -1,18 +1,18 @@
 import cv2
 import dlib
 import numpy as np
-import utils
+from . import utils
 import os
 import time
 
 import sys
 
 import tensorflow as tf
-import label_map_util
+from ..models import label_map_util
 
 import redis
 
-import redis_queue_utils as rqu
+from . import redis_queue_utils as rqu
 
 import logging
 
@@ -64,18 +64,19 @@ class FaceDetectorTensorflow:
         image_tensor.set_shape((640, 480, 100, 3))
         input_tensors = [image_tensor]
         output_tensors = [boxes, scores, classes, num_detections]
-        output_node_names = ['detection_boxes', 'detection_scores', 'detection_classes', 'num_detections']
+        output_node_names = [
+            'detection_boxes', 'detection_scores', 'detection_classes', 'num_detections']
         for t in input_tensors + output_tensors:
             print(t.shape)
 
         with tf.Session(graph=self.detection_graph) as sess:
             frozen_graph_def = tf.graph_util.convert_variables_to_constants(
-                    sess, sess.graph_def, output_node_names)
+                sess, sess.graph_def, output_node_names)
 
-        tflite_model = tf.lite.toco_convert(frozen_graph_def, input_tensors, output_tensors)
+        tflite_model = tf.lite.toco_convert(
+            frozen_graph_def, input_tensors, output_tensors)
 
         open("facebin_detect_v1.tflite", "wb").write(tflite_model)
-
 
     def detect_faces(self, image: np.ndarray):
         # We reduce the size of the image
@@ -198,8 +199,8 @@ class FaceDetectorDlib:
         for d in dets:
             x = d.left() * resize_ratio
             y = d.top() * resize_ratio
-            ## x and y can be negative for partial faces, so we check it here
-            ## https://github.com/davisking/dlib/issues/767
+            # x and y can be negative for partial faces, so we check it here
+            # https://github.com/davisking/dlib/issues/767
             x = 0 if x < 0 else x
             y = 0 if y < 0 else y
             w = d.right() * resize_ratio - x - 1
@@ -236,8 +237,8 @@ From the initial tests, it doesn't bring much to the project.
         for d in dets:
             x = d.rect.left() * resize_ratio
             y = d.rect.top() * resize_ratio
-            ## x and y can be negative for partial faces, so we check it here
-            ## https://github.com/davisking/dlib/issues/767
+            # x and y can be negative for partial faces, so we check it here
+            # https://github.com/davisking/dlib/issues/767
             x = 0 if x < 0 else x
             y = 0 if y < 0 else y
             w = d.rect.right() * resize_ratio - x - 1
@@ -398,7 +399,8 @@ def faces_from_video_file(video_filename: str):
 #             R.rpush('facekeys', facekey)
 #             log.debug("R.llen(facekeys): %s", R.llen('facekeys'))
 
+
 if __name__ == "__main__":
-     # face_detection_loop()
-     fd = FaceDetectorTensorflow()
-     fd.export_tflite()
+    # face_detection_loop()
+    fd = FaceDetectorTensorflow()
+    fd.export_tflite()

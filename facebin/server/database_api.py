@@ -1,5 +1,5 @@
 import sqlite3
-from utils import *
+from .utils import *
 import random
 import cv2
 import datetime as dt
@@ -99,17 +99,17 @@ def run_select_query(query, params, fetchsize=None):
 def run_insert_update_query(query, params):
     try:
         conn = sqlite3.connect("facebin.db", isolation_level='exclusive')
-        log.debug("conn: %s", conn) 
+        log.debug("conn: %s", conn)
         conn.set_trace_callback(print)
         c = conn.cursor()
-        log.debug("c: %s", c) 
+        log.debug("c: %s", c)
         c.execute(query, params)
-        log.debug("(query, params): %s", (query, params)) 
+        log.debug("(query, params): %s", (query, params))
         conn.commit()
         last_row_id = c.lastrowid
-        log.debug("last_row_id: %s", last_row_id) 
+        log.debug("last_row_id: %s", last_row_id)
         conn.close()
-        log.debug("conn: %s", conn) 
+        log.debug("conn: %s", conn)
         return last_row_id
     except Exception as e:
         print(e)
@@ -291,12 +291,14 @@ def person_by_feature_id(feature_id):
     params = (feature_id, )
     return run_select_query(q, params)
 
+
 def person_face_images_without_features():
     q = """SELECT id, person_id, path, is_face, feature_id
            FROM person_image
            WHERE is_face = 1 AND feature_id is NULL"""
     params = tuple([])
     return run_select_query(q, params)
+
 
 def person_images_by_person_id(person_id):
     q = """SELECT * FROM person_image WHERE person_image.person_id = ?"""
@@ -321,9 +323,10 @@ def person_feature_id_list():
     params = tuple([])
     return run_select_query(q, params)
 
+
 def update_face_image_feature_id(image_id, feature_id):
-    log.debug("image_id: %s", image_id) 
-    log.debug("feature_id: %s", feature_id) 
+    log.debug("image_id: %s", image_id)
+    log.debug("feature_id: %s", feature_id)
     q = """UPDATE person_image
     SET feature_id = ?
     WHERE id = ?
@@ -331,7 +334,6 @@ def update_face_image_feature_id(image_id, feature_id):
     params = (feature_id, image_id)
 
     return run_insert_update_query(q, params)
-
 
 
 
@@ -503,7 +505,7 @@ def history_query(person_id=None,
 
     Args:
         person_id: ID of the person to be searched in history or None for all
-    
+
     """
     general_query = """
         SELECT history.id as id,

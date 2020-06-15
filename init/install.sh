@@ -47,6 +47,8 @@ for f in string_int_label_map_pb2.py face_label_map.pbtxt frozen_inference_graph
     fi
 done
 
+python3 $MODEL_DIR/keras_vggface/setup.py install
+
 ## CC=/usr/bin/cc pip3 install -r $facebin_DIR/requirements.txt
 ## 
 ## if [[ ! -d $OPENCV_DIR ]] ; then

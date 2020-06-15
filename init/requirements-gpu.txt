@@ -9,3 +9,4 @@ matplotlib
 redis
 rq
 av
+pandas
