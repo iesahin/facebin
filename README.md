@@ -45,4 +45,6 @@ This software is a Python Desktop Application and Server that uses Tensorflow, R
 
 `history_recorder.py`: One of the elements of server processes. Retrieves the recognized faces from Redis and records them to database. 
 
+`import.py`: Imports the initial dataset from a directory by creating necessary DatasetManager object and importing the information.
+
 `facebin_init.py`: It adds `CUDA` paths to `$PATH` and imports tensorflow afterwards. 
