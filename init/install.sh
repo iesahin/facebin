@@ -5,7 +5,7 @@ DLIB_DIR=$HOME/Software/dlib
 OPENCV_DIR=$HOME/Software/opencv
 ENVIRONMENT_DIR=$HOME/Repository/facebin/env
 MODEL_DIR=${facebin_DIR}/models
-MODEL_DOWNLOAD_PREFIX="https://facebin-artifacts.s3.amazonaws.com/models"
+MODEL_DOWNLOAD_PREFIX="https://facebin-artifacts.s3.eu-central-1.amazonaws.com/models"
 
 sudo apt install pkg-config
 sudo apt install python3-venv python3-tk python3-pip
