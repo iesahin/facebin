@@ -2,7 +2,7 @@ import redis
 import time
 import numpy as np
 
-from utils import *
+from .utils import *
 
 log = init_logging()
 
@@ -29,15 +29,15 @@ def queue_length(queue):
 
 def get_next_key(queue, delete=False):
     try:
-        log.debug("queue: %s", queue) 
+        log.debug("queue: %s", queue)
         res = R.zrange(queue, 0, 0, withscores=True)
         log.debug("res: %s", res)
         if res == []:
             return None, None
         key, score = res[0]
-        log.debug("key: %s", key) 
+        log.debug("key: %s", key)
         log.debug("score: %s", score)
-        log.debug("delete: %s", delete) 
+        log.debug("delete: %s", delete)
         if delete:
             while R.zrem(queue, key) == 0:
                 key, score = R.zrange(queue, 0, 0, withscores=True)[0]
@@ -45,7 +45,7 @@ def get_next_key(queue, delete=False):
                           R.zcount(queue, 0, "inf"), key, score)
         return (key.decode("utf-8"), float(score))
     except Exception as err:
-        log.debug("error: %s", err) 
+        log.debug("error: %s", err)
         return (None, None)
 
 
@@ -134,6 +134,7 @@ def fix_keys(frame_dict):
 
     return res
 
+
 def del_frame(key):
     log.debug("Deleting frame: %s", key)
     R.hdel(key)
@@ -204,8 +205,10 @@ def processed_image_shape_z_k():
 def processed_image_dtype_k():
     return 'processed_image_dtype'
 
+
 def face_k(face_i):
     return "face_{}".format(face_i)
+
 
 def face_x_k(face_i):
     return "face_{}_x".format(face_i)
@@ -237,6 +240,7 @@ def face_encoding_dtype_k(face_i):
 
 def face_image_k(face_i):
     return 'face_image_{}'.format(face_i)
+
 
 def face_image_data_k(face_i):
     return 'face_image_{}_data'.format(face_i)
