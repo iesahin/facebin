@@ -16,4 +16,4 @@ logs/
 /.ipynb_checkpoints/face_rec_v6-checkpoint.ipynb
 /makimface_gui.build/
 /makimface_gui.bin
-/models/*
+facebin/models/*

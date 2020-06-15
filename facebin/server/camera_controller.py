@@ -1,6 +1,3 @@
-from PySide2 import QtCore as qtc
-from PySide2.QtCore import Signal, Slot, Property
-
 import subprocess as sp
 import database_api as db
 import re
@@ -11,13 +8,13 @@ import av
 
 import configparser as cp
 
-from utils import *
+from facebin.server.utils import *
 log = init_logging()
 
 CAMLOGDIR = '/tmp/facebin-cam-logs/'
 
 
-class CameraController(qtc.QObject):
+class CameraController:
     def __init__(self, camera_id, name, device, command):
         self.camera_id = camera_id
         self.name = name
@@ -43,7 +40,6 @@ class CameraController(qtc.QObject):
             re.sub('[^A-Za-z0-9]', '_', self.device) + '.err.' + ts + '.log')
         self.stderr_file = open(self.stderr_filename, 'w')
 
-    @Slot()
     def run_command(self):
         log.debug("Running Command: %s", self.command)
         log.debug("self.process: %s", self.process)
@@ -54,7 +50,6 @@ class CameraController(qtc.QObject):
                 stderr=self.stderr_file)
         log.debug("self.process: %s", self.process)
 
-    @Slot()
     def kill_command(self):
         if self.process is not None:
             self.process.terminate()
@@ -71,27 +66,31 @@ class CameraController(qtc.QObject):
     stdout = Property(str, stdout_r, None)
     stderr = Property(str, stderr_r, None)
 
-    @Slot(str)
     def update_name(self, name):
         self.name = name
 
-    @Slot(str)
     def update_device(self, device):
         self.device = device
 
-    @Slot(str)
     def update_command(self, command):
         self.command = command
 
 
-hostname = socket.gethostname()
-config_filename = "camera-config-{}.ini".format(hostname)
-config = cp.ConfigParser()
+def get_default_config_filename():
+    hostname = socket.gethostname()
+    config_filename = "camera-config-{}.ini".format(hostname)
+    return config_filename
 
 
-def get_camera_controllers():
+def get_camera_controllers(config_filename=None):
+
+    if config_filename is None:
+        config_filename = get_default_config_filename()
+
+    config = cp.ConfigParser()
+
     log.debug(config_filename)
-    if os.path.exists(config_filename):
+   if os.path.exists(config_filename):
         config.read(config_filename)
     else:
         config['camera1'] = {
@@ -114,7 +113,12 @@ def get_camera_controllers():
     return cams
 
 
-def save_camera_config(cam):
+def save_camera_config(cam, config_filename=None):
+
+    if config_filename is None:
+        config_filename = get_default_config_filename()
+
+    config = cp.ConfigParser(config_filename)
 
     config[cam.camera_id] = {
         'id': cam.camera_id,

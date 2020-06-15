@@ -1,15 +1,16 @@
-import redis_queue_utils as rqu
+import facebin.server.redis_queue_utils as rqu
 import rq
 import redis
-import video_recorder
-import history_recorder
-import camera_reader
+import facebin.server.video_recorder as video_recorder
+import facebin.server.history_recorder as history_recorder
+import facebin.server.camera_reader as camera_reader
 import camera_controller as cc
 import history_dialog as hd
 import person_dialog as pd
 import camera_dialog as cd
-import database_api as db
-import face_recognition_v6 as fr6
+import facebin.server.database_api as db
+import facebin.server.face_recognition_v6 as fr6
+# pylint: disable=no-name-in-module
 from PySide2.QtCore import Signal, Slot
 from PySide2 import QtGui as qtg
 from PySide2 import QtWidgets as qtw
@@ -24,7 +25,7 @@ import sys
 from os import path
 import os
 import gc
-from utils import *
+from facebin.server.utils import *
 
 log = init_logging()
 log.debug("os.environ: %s", os.environ)
@@ -81,6 +82,7 @@ class VideoPresentationWidget(qtw.QWidget):
         if image_data is None:
             image_data = rqu.get_frame_image(key, name='image')
         qs = self.size()
+        # pylint: disable=no-member
         image_data = cv2.resize(image_data, (qs.width(), qs.height()))
         self.image = get_qimage(image_data)
         # log.debug("R.zcount(self.output_queue, 0, 'inf'): %s", R.zcount(self.output_queue, 0, "inf"))
@@ -104,6 +106,7 @@ class FaceRecognitionWidget(qtw.QWidget):
         self.camera_controller = camera_controller
         self.video_device = camera_controller.device
         self.recognizer = fr6.FaceRecognizer_v6()
+        # pylint: disable=no-member
         self.font = cv2.FONT_HERSHEY_COMPLEX_SMALL
         self.text_color = (255, 255, 0)
         self.rectangle_color = (255, 0, 255)
