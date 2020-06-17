@@ -17,9 +17,9 @@ def main():
     a = parser.parse_args()
     print(a)
 
-    server = fs.FacebinServer(num_camera_reader=a.num_camera_reader,
-                              num_recognizer=a.num_recognizer,
-                              num_history=a.num_history,
+    server = fs.FacebinServer(num_camera_reader=a.num_camera_readers,
+                              num_recognizer=a.num_recognizers,
+                              num_history=a.num_history_writers,
                               health_check_interval=a.health_check_interval,
                               camera_config_file=a.camera_config
                               )
