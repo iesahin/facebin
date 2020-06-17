@@ -1,3 +1,7 @@
+# 0.1.2
+
+- Adding a Dockerfile for recognition server based on nvidia/cuda:10.2-base
+
 
 # 0.1.1
 
