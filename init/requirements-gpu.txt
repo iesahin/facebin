@@ -1,7 +1,7 @@
 # tf-nightly-gpu
 Flask-Excel~=0.0
 Flask-WTF~=0.14
-Flask~=1.0
+Flask~=2.3
 Jinja2~=2.10
 Keras-Applications~=1.0
 Keras-Preprocessing~=1.0
