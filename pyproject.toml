@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "facebin"
-version = "0.2.0"
+version = "0.3.0"
 description = "Face detection and recognition for video streams and photos"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -47,6 +47,11 @@ ml = [
 ui = [
     "PySide6>=6.6",
 ]
+api = [
+    # The HTTP API and mobile web app (`facebin api`, docs/MOBILE.md).
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
 dev = [
     "pytest>=8.0",
     "fakeredis>=2.21",
@@ -63,6 +68,7 @@ include = ["facebin*"]
 
 [tool.setuptools.package-data]
 "facebin.resources" = ["*.png"]
+"facebin.api" = ["static/*", "static/icons/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

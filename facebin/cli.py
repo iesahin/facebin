@@ -59,6 +59,11 @@ def build_parser():
         "gui", help="Start the GUI only (expects a running server).")
     _add_config_argument(p_gui)
 
+    p_api = sub.add_parser(
+        "api", help="Start the HTTP API / mobile web app server only "
+        "(expects a running server).")
+    _add_config_argument(p_api)
+
     p_init_config = sub.add_parser(
         "init-config", help="Write a commented default facebin.toml.")
     p_init_config.add_argument(
@@ -170,6 +175,24 @@ def cmd_gui(args):
     return _run_gui(config)
 
 
+def cmd_api(args):
+    from facebin.api.server import serve
+    from .server import database_api as db
+    config = load_config(args.config)
+    redis_proc = ensure_redis(config)
+    db.configure(config)
+    db.init_db()
+    try:
+        serve(config)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if redis_proc is not None:
+            redis_proc.terminate()
+            redis_proc.wait()
+    return 0
+
+
 def cmd_init_config(args):
     path = write_default_config(args.path, overwrite=args.force)
     print("Wrote default configuration to {}".format(path))
@@ -256,6 +279,8 @@ def main(argv=None):
             return cmd_server(args, with_gui=False)
         if command == "gui":
             return cmd_gui(args)
+        if command == "api":
+            return cmd_api(args)
         if command == "init-config":
             return cmd_init_config(args)
         if command == "init-db":

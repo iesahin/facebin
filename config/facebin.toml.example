@@ -39,6 +39,16 @@ detection_labels = "face_label_map.pbtxt"
 [dataset]
 dir = "~/facebin-data/dataset-images/user"
 
+[api]
+# HTTP API and mobile web app (see docs/MOBILE.md). When enabled,
+# `facebin run` / `facebin server` also start this server, and the web
+# app is reachable at http://<host>:<port>/ on your phone's browser.
+enabled = false
+host = "0.0.0.0"
+port = 8420
+# Seconds an authentication token stays valid.
+session_ttl = 86400
+
 # One [[camera]] block per camera. `device` may be a local video device,
 # an RTSP URL, or a video file. `command` optionally starts a helper
 # process (e.g. an ffmpeg relay) before reading from the device.

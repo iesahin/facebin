@@ -1,3 +1,17 @@
+# 0.3.0
+
+- **Mobile support**: new HTTP API server (`facebin api`, or
+  `[api] enabled = true` to have `facebin run`/`facebin server` start and
+  supervise it) exposing authenticated REST endpoints for history,
+  people, cameras, and pipeline status, plus MJPEG live streams of the
+  annotated camera feeds. Served at `/` is a mobile-first progressive
+  web app (installable on Android via "Add to Home screen") with Live,
+  History, People, and Status screens. See docs/MOBILE.md.
+- New `api` dependency extra (FastAPI + uvicorn) and `[api]` section in
+  facebin.toml (enabled, host, port, session_ttl).
+- 15 new API tests (auth, streaming, history/people endpoints, PWA
+  shell) — 102 tests total.
+
 # 0.2.0
 
 - **Single executable**: the new `facebin` command (also `python -m
