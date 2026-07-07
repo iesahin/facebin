@@ -1,74 +1,101 @@
-import camera_controller as cc
-import configparser as cp
-import redis
+"""Camera reader worker process.
+
+Reads frames from a camera device (or stream) with PyAV and pushes them to
+the Redis ``CAMERA_QUEUE`` for the recognizer processes.  One reader process
+runs per configured camera; it is started and supervised by
+:class:`facebin.server.FacebinServer`.
+"""
+
+import datetime as dt
+import os
+import sys
 import time
 
-import sys
-import os
-import datetime as dt
-import av
-
-import redis_queue_utils as rqu
-
-from utils import *
+from facebin.config import load_config
+from facebin.errors import CameraError, DependencyError
+from . import redis_queue_utils as rqu
+from .utils import init_logging
 
 log = init_logging()
 
-current_video_outstream = None
-current_video_output = None
-current_video_filename = None
-current_video_index = None
 
-cfg = cp.ConfigParser()
-cfg.read("facebin.ini")
-
-video_record_dir = os.path.expandvars(cfg['video']['video_record_dir'])
-video_record_period = int(cfg['video']['video_seconds_per_file'])
-
-R = redis.Redis(host='localhost', port=6379)
+def _video_settings(config):
+    video_dir = config.video.resolved_dir()
+    return video_dir, config.video.video_seconds_per_file
 
 
-def get_video_index(t):
+def get_video_index(t, video_record_period):
     return (t // video_record_period) * video_record_period
 
 
-def get_video_filename(t, cam_id):
-    log.debug("t: %s", t)
-    log.debug("cam_id: %s", cam_id)
+def get_video_filename(t, cam_id, video_record_dir, video_record_period):
+    """Return the video file a frame at timestamp ``t`` belongs to."""
     try:
-        video_index = get_video_index(t)
+        video_index = get_video_index(t, video_record_period)
         tstr = dt.datetime.fromtimestamp(video_index).strftime("%F-%H-%M-%S")
-    except ValueError:
-        video_index = get_video_index(time.time())
+    except (ValueError, OSError, OverflowError):
+        # Stream timestamps (dts) are not always valid UNIX times.
+        video_index = get_video_index(time.time(), video_record_period)
         tstr = dt.datetime.fromtimestamp(video_index).strftime("%F-%H-%M-%S")
+    return os.path.join(video_record_dir,
+                        "camera-{}-index-{}.mp4".format(cam_id, tstr))
 
-    fn = "{}/camera-{}-index-{}.mp4".format(video_record_dir, cam_id, tstr)
-    return fn
+
+def open_container(camera_device):
+    """Open a PyAV container for a device, with a meaningful error."""
+    try:
+        import av
+    except ImportError as e:
+        raise DependencyError(
+            "PyAV is not installed; camera frames cannot be read.",
+            hint="Install it with `pip install av`.") from e
+    try:
+        container = av.open(camera_device, 'r')
+    except Exception as e:
+        raise CameraError(
+            "Cannot open camera device '{}': {}".format(camera_device, e),
+            hint="Check that the device exists (e.g. `ls /dev/video*`), "
+            "that the RTSP URL and credentials are correct, and that no "
+            "other process is using the camera.") from e
+    if not container.streams.video:
+        raise CameraError(
+            "Device '{}' has no video stream.".format(camera_device))
+    return container
 
 
-def reader_loop(camera_id, camera_device, max_fps=25):
-    outfile = open(
-        "/tmp/facebin-camera-reader-out-pid-{}.txt".format(os.getpid()), "a")
+def reader_loop(camera_id, camera_device, max_fps=25, config=None):
+    """Read frames from a camera and enqueue them until the process dies."""
+    if config is None:
+        config = load_config()
+    rqu.configure(config.redis)
+    video_record_dir, video_record_period = _video_settings(config)
+
+    log_path = "/tmp/facebin-camera-reader-out-pid-{}.txt".format(os.getpid())
+    outfile = open(log_path, "a")
     sys.stdout = outfile
     sys.stderr = outfile
-    container = av.open(camera_device, 'r')
-    # FASTER
+
+    container = open_container(camera_device)
     container.streams.video[0].thread_type = 'AUTO'
-    # SKIP NONKEY FRAMES
-    # container.streams.video[0].codec_context.skip_frame = 'NONKEY'
+
     camera_prev_time = time.time()
     skip_threshold = 10
     skips_before_quit = 100
     skips = 0
     min_delay = 1.0 / max_fps
+
     for frame in container.decode(video=0):
         if rqu.queue_length(rqu.CAMERA_QUEUE) > skip_threshold:
-            log.warning("Waiting other elements to catch up")
+            log.warning("Camera %s: queue is full; waiting for recognizers "
+                        "to catch up.", camera_id)
             time.sleep(min_delay)
             skips += 1
             if skips >= skips_before_quit:
-                log.warning("Seems no one is cleaning up the queue")
-                exit()
+                raise CameraError(
+                    "Camera {}: nothing consumed the frame queue for {} "
+                    "cycles; giving up.".format(camera_id, skips),
+                    hint="Check that recognizer processes are running and "
+                    "that Redis is reachable.")
         else:
             skips = 0
 
@@ -80,64 +107,18 @@ def reader_loop(camera_id, camera_device, max_fps=25):
             time.sleep(min_delay - camera_diff)
             continue
 
-        camera_diff = camera_current_time - camera_prev_time
-        fps = 1 / (camera_diff)
-        # log.debug("Cam Time %s: %s", camera_id, camera_diff)
-        # log.debug("FPS %s: %s", camera_id, fps)
-        # log.debug("frame.dts: %s", frame.dts)
+        current_video_filename = get_video_filename(
+            frame.dts, camera_id, video_record_dir, video_record_period)
 
-        current_video_filename = get_video_filename(frame.dts, camera_id)
-
-        redis_before = time.time()
-        rqu.init_frame(
-            frame.to_ndarray(format='bgr24'), frame.dts,
-            current_video_filename, camera_id)
-        redis_after = time.time()
-
-        log.debug("Redis time for %s: %s", camera_id,
-                  (redis_after - redis_before))
-
+        rqu.init_frame(frame.to_ndarray(format='bgr24'), frame.dts,
+                       current_video_filename, camera_id)
         camera_prev_time = time.time()
 
-
-def reader_record_loop(camera_id):
-    global current_video_index
-    global current_video_output
-    global current_video_outstream
-    global current_video_filename
-
-    while True:
-        for packet in cam.container.demux(video=0):
-            log.debug("packet: %s", packet)
-            if packet.dts is None:
-                log.debug("dts is None")
-                continue
-
-            vi = get_video_index(packet.dts)
-            if vi != current_video_index:
-                if current_video_output is not None:
-                    current_video_output.close()
-                current_video_filename = get_video_filename(
-                    packet.dts, cam.camera_id)
-                current_video_output = av.open(current_video_filename, "w")
-                try:
-                    current_video_outstream = current_video_output.add_stream(
-                        template=cam.container.streams.video[0])
-                except ValueError:
-                    current_video_outstream = current_video_output.add_stream(
-                        codec_name=av.Codec('mpeg4', 'w'))
-
-                log.debug('current_video_outstream: %s',
-                          current_video_outstream)
-            # current_video_outstream.pix_fmt = cam.container.streams.video[
-            #     0].pix_fmt
-            packet.stream = current_video_outstream
-            current_video_output.mux(packet)
-
-            frame = packet.decode()
-            rqu.add_frame_to_redis(
-                frame.to_ndarray(format='bgr24'), frame.dts,
-                current_video_filename, cam.camera_id)
+    raise CameraError(
+        "Camera {}: stream '{}' ended unexpectedly.".format(
+            camera_id, camera_device),
+        hint="For live cameras this usually means the connection dropped; "
+        "the server supervisor will restart this reader.")
 
 
 if __name__ == '__main__':

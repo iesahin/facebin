@@ -1,11 +1,15 @@
-from PySide2 import QtCore as qtc
-from PySide2.QtCore import Signal, Slot, Property
+"""Qt-facing wrapper around the server-side camera controller."""
+
+from facebin.ui.qt_compat import qtc, Signal, Slot
 
 import facebin.server.camera_controller as server_cc
+
+Property = qtc.Property
 
 
 class CameraController(qtc.QObject):
     def __init__(self, camera_id, name, device, command):
+        super().__init__()
         self.cc = server_cc.CameraController(camera_id, name, device, command)
 
     @Slot()
@@ -17,10 +21,18 @@ class CameraController(qtc.QObject):
         self.cc.kill_command()
 
     def stdout_r(self):
-        return self.cc.stdout_file.read()
+        try:
+            with open(self.cc.stdout_filename) as f:
+                return f.read()
+        except OSError:
+            return ""
 
     def stderr_r(self):
-        return self.cc.stderr_file.read()
+        try:
+            with open(self.cc.stderr_filename) as f:
+                return f.read()
+        except OSError:
+            return ""
 
     stdout = Property(str, stdout_r, None)
     stderr = Property(str, stderr_r, None)

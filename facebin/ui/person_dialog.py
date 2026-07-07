@@ -1,17 +1,15 @@
 import sys
 
-from PySide2 import QtCore as qtc
-from PySide2 import QtWidgets as qtw
-from PySide2 import QtGui as qtg
-from PySide2.QtCore import Signal, Slot
+from facebin.ui.qt_compat import qtc, qtw, qtg, Signal, Slot
 
 import numpy as np
-import database_api as db
-import dataset_manager_v3 as dm3
-import face_detection as fd
-import face_recognition_v6 as fr6
+import facebin.server.database_api as db
+import facebin.server.dataset_manager_v3 as dm3
+import facebin.server.face_detection as fd
+import facebin.server.face_recognition_v6 as fr6
 
-from utils import *
+from facebin.server.utils import init_logging
+from facebin.ui.qt_utils import get_qimage
 
 log = init_logging()
 
@@ -48,7 +46,7 @@ class PersonDetailsDialog(qtw.QDialog):
     @staticmethod
     def AddPerson(parent=None):
         dialog = PersonDetailsDialog(parent)
-        res = dialog.exec_()
+        res = dialog.exec()
         log.debug("res: %s", res)
         if res == qtw.QDialog.Accepted:
             person_id = db.insert_person(dialog.title_edit.text(),
@@ -67,7 +65,7 @@ class PersonDetailsDialog(qtw.QDialog):
         dialog.name_edit.setText(person_info[0][1])
         dialog.title_edit.setText(person_info[0][2])
         dialog.notes_edit.setText(person_info[0][3])
-        res = dialog.exec_()
+        res = dialog.exec()
         if res == qtw.QDialog.Accepted:
             person_id = db.update_person(person_id, dialog.title_edit.text(),
                                          dialog.name_edit.text(),
@@ -127,7 +125,7 @@ class ImageListDialog(qtw.QDialog):
         print(image_list)
         dialog = ImageListDialog(
             image_list, selected_by_default=True, parent=parent)
-        dialog.exec_()
+        dialog.exec()
 
     @staticmethod
     def AddPersonImage(person_id, new_image_path, parent=None):
@@ -141,7 +139,7 @@ class ImageListDialog(qtw.QDialog):
         log.debug("image_list: %s", image_list)
         dialog = ImageListDialog(
             image_list, selected_by_default=True, parent=parent)
-        dialog_res = dialog.exec_()
+        dialog_res = dialog.exec()
         log.debug("dialog_res: %s", dialog_res)
         if dialog_res == qtw.QDialog.Accepted:
             log.debug("dialog.checkbox_list[0].isChecked(): %s",
@@ -157,7 +155,7 @@ class ImageListDialog(qtw.QDialog):
         qimage_list = [get_qimage(fi) for fi in image_list]
         dialog = ImageListDialog(qimage_list, selected_by_default, parent)
         selected_image_list = []
-        if dialog.exec_() == qtw.QDialog.Accepted:
+        if dialog.exec() == qtw.QDialog.Accepted:
             for i, cb in enumerate(dialog.checkbox_list):
                 if cb.isChecked():
                     selected_image_list.append(image_list[i])
@@ -214,7 +212,7 @@ class PersonListDialog(qtw.QDialog):
     def SelectPerson(parent=None):
         log.debug("parent: %s", parent)
         dialog = PersonListDialog(parent)
-        if dialog.exec_() == qtw.QDialog.Accepted:
+        if dialog.exec() == qtw.QDialog.Accepted:
             log.debug("dialog.selected_person_id: %s",
                       dialog.selected_person_id)
             return dialog.selected_person_id
@@ -369,7 +367,7 @@ def main():
     recognizer = fr6.FaceRecognizer_v6()
     pd = PersonDialog(recognizer)
     pd.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':

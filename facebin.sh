@@ -1,13 +1,13 @@
-#!/bin/zsh
+#!/bin/sh
+# Backward-compatible launcher. Deprecated: install the package
+# (`pip install -e .[ml,ui]`) and run `facebin` directly.
 
-FCBF=$HOME/Repository/facebin
-ENV=$FCBF/env/bin/
-cd $FCBF
-source $ENV/activate
+FCBF=$(dirname "$(realpath "$0")")
+ENV="$FCBF/env/bin"
+[ -d "$FCBF/.venv/bin" ] && ENV="$FCBF/.venv/bin"
 
-git -C $FCBF pull
+LOGDIR="$FCBF/logs/$(date +"%F-%H-%M-%S")"
+mkdir -p "$LOGDIR"
 
-LOGDIR=$FCBF/logs/$(date +"%F-%H-%M-%S")
-mkdir -p $LOGDIR
-
-$ENV/python3 $FCBF/facebin_gui.py 1>$LOGDIR/facebin_gui.out 2>$LOGDIR/facebin_gui.err
+exec "$ENV/python3" -m facebin run \
+    1>"$LOGDIR/facebin.out" 2>"$LOGDIR/facebin.err"

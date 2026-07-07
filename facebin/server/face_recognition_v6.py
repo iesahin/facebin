@@ -1,20 +1,44 @@
-import keras_vggface as kvgg
-from keras_vggface.vggface import VGGFace
-from keras.applications.imagenet_utils import preprocess_input
-from keras.preprocessing.image import load_img, save_img, img_to_array, ImageDataGenerator
-from keras.layers import Input
-from keras.engine import Model
-import redis
-from . import redis_queue_utils as rqu
-from . import face_detection as fd
-from . import dataset_manager_v3 as ds3
-from . import database_api as db
-import shutil
-import sys
-import pickle
-import time
+"""Face recognition worker (v6).
+
+Encodes detected faces with a VGGFace network and matches them against the
+known-person feature set by nearest-neighbor distance.  The worker entry
+point is :func:`face_recognition_loop`, which consumes frames from the
+Redis camera queue and publishes annotated frames and face records.
+
+Requires the optional ``ml`` dependencies (``pip install 'facebin[ml]'``).
+"""
+
 import os
+import pickle
+import shutil
+import socket
+import subprocess
+import sys
+import time
+
 import cv2
+import numpy as np
+
+from facebin.errors import DependencyError
+
+try:
+    from keras_vggface.vggface import VGGFace
+    from keras.applications.imagenet_utils import preprocess_input
+    from keras.preprocessing.image import (load_img, save_img, img_to_array,
+                                           ImageDataGenerator)
+    from keras.callbacks import (Callback, EarlyStopping, ModelCheckpoint,
+                                 TensorBoard)
+    try:
+        from keras.engine import Model
+    except ImportError:
+        from keras.models import Model
+except ImportError as e:
+    raise DependencyError(
+        "Face recognition requires TensorFlow/Keras and keras_vggface, "
+        "which are not installed ({}).".format(e),
+        hint="Install the machine-learning dependencies with "
+        "`pip install 'facebin[ml]'`.") from e
+
 from sklearn.calibration import CalibratedClassifierCV
 import sklearn.gaussian_process as skgp
 import sklearn.neural_network as sknn
@@ -22,9 +46,37 @@ import sklearn.linear_model as sklm
 import sklearn.ensemble as ske
 import sklearn.svm as svm
 import sklearn.neighbors as skn
-import numpy as np
-from .utils import *
+
+from facebin.config import load_config
+from . import redis_queue_utils as rqu
+from . import face_detection as fd
+from . import dataset_manager_v3 as ds3
+from . import database_api as db
+from .utils import init_logging, shuffle_parallel, static_vars
+
 log = init_logging()
+
+
+class NtfyProgress(Callback):
+    """Send training progress notifications through the `ntfy` CLI tool."""
+
+    def on_train_begin(self, logs=None):
+        epoch = self.params.get("epochs")
+        steps = self.params.get("steps")
+        subprocess.run(
+            'ntfy -t "Begin Training" send "Epoch: {} Steps: {}"'.format(
+                epoch, steps),
+            shell=True)
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        hostname = socket.gethostname()
+        cmd = ('ntfy -t "End of Epoch {} in {}" send '
+               '"loss: {:.2f} acc: {:.2f} val_loss: {:.2f} val_acc: {:.2f}"'
+               .format(epoch, hostname, logs.get("loss", 0),
+                       logs.get("acc", 0), logs.get("val_loss", 0),
+                       logs.get("val_acc", 0)))
+        subprocess.run(cmd, shell=True)
 # import tensorflow as tf
 # import keras.backend.tensorflow_backend
 # keras.backend.tensorflow_backend.set_session(
@@ -332,7 +384,7 @@ class FaceRecognizer_v6:
             detector=self.detector)
         log.debug("Face Detection Time: %s", time.time() - fd_start)
         log.debug("Faces #: %s", len(faces))
-        results = np.empty(shape=(faces.shape[0], ), dtype=np.int)
+        results = np.empty(shape=(faces.shape[0], ), dtype=np.int64)
         dists = np.empty(shape=(faces.shape[0], ), dtype=np.float32)
         encodings = np.empty(
             shape=(faces.shape[0], self.dataset.FEATURE_SIZE),
@@ -361,9 +413,9 @@ class FaceRecognizer_v6:
 
 
 def add_processed_frame(R, key, image_data):
-    res = R.hmset(
-        key, {
-            rqu.processed_image_data_k(): image_data.tostring(),
+    res = R.hset(
+key, mapping= {
+            rqu.processed_image_data_k(): image_data.tobytes(),
             rqu.processed_image_shape_x_k(): image_data.shape[0],
             rqu.processed_image_shape_y_k(): image_data.shape[1],
             rqu.processed_image_shape_z_k(): image_data.shape[2],
@@ -379,16 +431,16 @@ def add_face(R, key, face_i, face_image, person_id, coords, encoding,
     log.debug("encoding.shape: %s", encoding.shape)
     log.debug("encoding.dtype: %s", encoding.dtype)
     x, y, w, h = coords[0], coords[1], coords[2], coords[3]
-    R.hmset(
-        key, {
+    R.hset(
+key, mapping= {
             rqu.face_x_k(face_i): int(x),
             rqu.face_y_k(face_i): int(y),
             rqu.face_w_k(face_i): int(w),
             rqu.face_h_k(face_i): int(h),
             rqu.face_person_id_k(face_i): person_id,
-            rqu.face_encoding_k(face_i): encoding.tostring(),
+            rqu.face_encoding_k(face_i): encoding.tobytes(),
             rqu.face_encoding_dtype_k(face_i): str(encoding.dtype),
-            rqu.face_image_data_k(face_i): face_image.tostring(),
+            rqu.face_image_data_k(face_i): face_image.tobytes(),
             rqu.face_image_shape_x_k(face_i): int(face_image.shape[0]),
             rqu.face_image_shape_y_k(face_i): int(face_image.shape[1]),
             rqu.face_image_shape_z_k(face_i): int(face_image.shape[2]),
@@ -397,7 +449,12 @@ def add_face(R, key, face_i, face_image, person_id, coords, encoding,
         })
 
 
-def face_recognition_loop():
+def face_recognition_loop(config=None):
+    """Worker entry point: detect and recognize faces in queued frames."""
+    if config is None:
+        config = load_config()
+    rqu.configure(config.redis)
+    db.configure(config)
     outfile = open(
         "/tmp/facebin-face-recognition-out-pid-{}.txt".format(os.getpid()),
         "a")

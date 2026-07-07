@@ -1,23 +1,21 @@
 import sys
 
-from PySide2 import QtCore as qtc
-from PySide2 import QtWidgets as qtw
-from PySide2 import QtGui as qtg
-from PySide2.QtCore import Signal, Slot
+from facebin.ui.qt_compat import qtc, qtw, qtg, Signal, Slot
 
 import datetime as dt
 
 import numpy as np
-import database_api as db
-import dataset_manager_v3 as dm3
-import face_detection as fd
-import face_recognition_v6 as fr6
-import camera_controller as cc
-import person_dialog as pd
+import facebin.server.database_api as db
+import facebin.server.dataset_manager_v3 as dm3
+import facebin.server.face_detection as fd
+import facebin.server.face_recognition_v6 as fr6
+import facebin.server.camera_controller as cc
+import facebin.ui.person_dialog as pd
 
-import show_image_dialog as sid
+import facebin.ui.show_image_dialog as sid
 
-from utils import *
+from facebin.server.utils import init_logging
+from facebin.ui.qt_utils import get_qimage
 
 log = init_logging()
 
@@ -255,7 +253,7 @@ class HistoryDialog(qtw.QDialog):
         record = self.history_records[index]
         detail_form = HistoryPersonDetailDialog(
             record, self.face_recognizer, parent=self)
-        detail_form.exec_()
+        detail_form.exec()
         self.history_records[index] = detail_form.hr
         self.populate_history_items()
 
@@ -355,14 +353,14 @@ class HistoryDialog(qtw.QDialog):
     #     index = button.index
     #     camera_image = self.history_records[index].camera_image_filename
     #     image_dialog = sid.ShowImageDialog(camera_image)
-    #     image_dialog.exec_()
+    #     image_dialog.exec()
 
     # def face_image_button_clicked_callback(self):
     #     button = self.sender()
     #     index = button.index
     #     face_image = self.history_records[index].face_image_filename
     #     image_dialog = sid.ShowImageDialog(face_image)
-    #     image_dialog.exec_()
+    #     image_dialog.exec()
 
     def _get_button_icon(self, image):
         if image is None:
@@ -415,7 +413,7 @@ def main():
     recognizer = fr.FaceRecognizer_v6()
     history_dialog = HistoryDialog(recognizer)
     history_dialog.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':

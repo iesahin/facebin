@@ -1,15 +1,13 @@
 import sys
 
-from PySide2 import QtCore as qtc
-from PySide2 import QtWidgets as qtw
-from PySide2 import QtGui as qtg
-from PySide2.QtCore import Signal, Slot
+from facebin.ui.qt_compat import qtc, qtw, qtg, Signal, Slot
 
 import datetime as dt
 
 import numpy as np
 
-from utils import *
+from facebin.server.utils import init_logging
+from facebin.ui.qt_utils import get_qimage
 
 log = init_logging()
 

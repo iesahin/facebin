@@ -18,3 +18,10 @@ logs/
 /makimface_gui.build/
 /makimface_gui.bin
 facebin/models/*
+!facebin/models/label_map_util.py
+!facebin/models/.keep_dir
+/.venv/
+*.egg-info/
+.pytest_cache/
+# Local configuration may contain camera credentials; keep it out of git.
+/facebin.toml

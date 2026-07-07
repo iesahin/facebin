@@ -1,12 +1,9 @@
 import sys
 
-from PySide2 import QtCore as qtc
-from PySide2 import QtWidgets as qtw
-from PySide2 import QtGui as qtg
-from PySide2.QtCore import Signal, Slot
+from facebin.ui.qt_compat import qtc, qtw, qtg, Signal, Slot
 
-import database_api as db
-import camera_controller as cc
+import facebin.server.database_api as db
+import facebin.server.camera_controller as cc
 
 
 class CameraConfigurationDialog(qtw.QDialog):
@@ -195,7 +192,7 @@ def main():
     app = qtw.QApplication(sys.argv)
     ccd = CameraConfigurationDialog()
     ccd.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':

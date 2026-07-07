@@ -1,21 +1,29 @@
+"""Training dataset management (v3).
+
+Keeps person images and their VGGFace feature vectors on disk (under the
+``[dataset]`` directory of ``facebin.toml``) and in the SQLite database,
+and prepares dataframes for Keras' ``ImageDataGenerator``.
+
+Requires the optional ``ml`` dependencies (``pip install 'facebin[ml]'``).
+"""
+
+import datetime as dt
+import glob
+import hashlib
+import logging
+import os
+import random
+import re
+
+import cv2
 import numpy as np
 import numpy.random as nr
-import cv2
-import datetime as dt
-import os
-import re
-import random
-import glob
+import pandas as pd
+
+from facebin.config import load_config
 from . import database_api as db
 from . import face_detection as fd
-import pandas as pd
-import keras
-from .utils import *
-import logging
-import hashlib
-
-import configparser as cp
-from . import face_recognition_v6 as fr6
+from .utils import init_logging
 
 log = init_logging()
 
@@ -37,9 +45,8 @@ ImageDataGenerator of Keras.
 
     def __init__(self, user_root=None, detector=None, encoder=None):
         if user_root is None:
-            config = get_configuration()
-            self.USER_ROOT = os.path.expandvars(
-                config['general']['dataset-dir'])
+            config = load_config()
+            self.USER_ROOT = config.dataset.resolved_dir()
         else:
             self.USER_ROOT = os.path.expandvars(user_root)
 
@@ -74,7 +81,7 @@ ImageDataGenerator of Keras.
             log.info("Creating %s", img_dir)
             os.makedirs(img_dir)
         filename = "img-{}.png".format(
-            hashlib.md5(image.tostring()).hexdigest())
+            hashlib.md5(image.tobytes()).hexdigest())
         image_path = os.path.join(img_dir, filename)
         cv2.imwrite(image_path, image)
         img_h, img_w, img_c = image.shape
@@ -274,7 +281,7 @@ ImageDataGenerator of Keras.
     def _user_face_image_file(self, person_id, image):
         "Returns the face image path of an image file."
         filename = "face-{}.png".format(
-            hashlib.md5(image.tostring()).hexdigest())
+            hashlib.md5(image.tobytes()).hexdigest())
         d = self._user_image_dir(person_id)
         return os.path.join(d, filename)
 

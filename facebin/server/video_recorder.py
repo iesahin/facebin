@@ -1,119 +1,81 @@
-import os
-import cv2
-import random
+"""Footage recording to disk.
+
+Writes camera frames into rolling video files (one file per
+``video.video_seconds_per_file`` seconds, per camera) under
+``video.video_record_dir``.
+"""
+
 import datetime as dt
-import io
+import os
 import time
 
-from PySide2 import QtCore as qtc
-from PySide2 import QtWidgets as qtw
-from PySide2 import QtGui as qtg
+import cv2
 
-import configparser as cp
-
-from utils import *
+from facebin.config import load_config
+from .utils import init_logging
 
 log = init_logging()
 
-cfg = cp.ConfigParser()
-cfg.read("facebin.ini")
+_video_writers = {}
+_last_checked = 0
+_config = None
 
-video_record_dir = os.path.expandvars(cfg['video']['video_record_dir'])
-video_record_period = int(cfg['video']['video_seconds_per_file'])
 
-video_writers = {}
-last_checked = 0
+def configure(config):
+    global _config
+    _config = config
+
+
+def _get_config():
+    global _config
+    if _config is None:
+        _config = load_config()
+    return _config
 
 
 def get_video_index(t):
-    return (t // video_record_period) * video_record_period
+    period = _get_config().video.video_seconds_per_file
+    return (t // period) * period
 
 
 def get_video_filename(t, cam_id):
     video_index = get_video_index(t)
     tstr = dt.datetime.fromtimestamp(video_index).strftime("%F-%H-%M-%S")
-    fn = "{}/camera-{}-index-{}.xvid".format(video_record_dir, cam_id, tstr)
-    return fn
+    return os.path.join(_get_config().video.resolved_dir(),
+                        "camera-{}-index-{}.avi".format(cam_id, tstr))
 
 
 def record(t, cam_id, camera_image, video_filename):
-    global video_writers
-    global last_checked
+    """Append a frame to its video file, opening a writer when needed."""
     fn = video_filename
-    log.debug("video_writers.keys(): %s", video_writers.keys())
-    if fn not in video_writers:
-        log.debug("Opening: %s", fn)
+    if fn not in _video_writers:
+        os.makedirs(os.path.dirname(fn) or ".", exist_ok=True)
         size = (camera_image.shape[1], camera_image.shape[0])
-        # log.debug("Size: %s", size)
-        vw = cv2.VideoWriter(fn, cv2.VideoWriter_fourcc('X', 'V', 'I',
-                                                        'D'), 30,
-                             (camera_image.shape[1], camera_image.shape[0]))
-        log.debug("video_writer created: %s", vw)
-        video_writers[fn] = (vw, time.time())
-        log.debug("video_writers[%s]: %s", fn, video_writers[fn])
+        vw = cv2.VideoWriter(fn, cv2.VideoWriter_fourcc(*'XVID'), 30, size)
+        if not vw.isOpened():
+            log.error(
+                "Cannot open video writer for '%s'; frames from camera %s "
+                "will not be recorded. Check that the directory is writable "
+                "and OpenCV has XVID support.", fn, cam_id)
+            return
+        _video_writers[fn] = (vw, time.time())
 
-    vw, _ = video_writers[fn]
-    # log.debug("vw: %s", vw)
+    vw, _ = _video_writers[fn]
     vw.write(camera_image)
-    # log.debug("Written: %s", camera_image.shape)
-    video_writers[fn] = (vw, time.time())
-    # log.debug("video_writers[%s]: %s", fn, video_writers[fn])
-    # close long unused files
-
-    if (time.time() - last_checked) > 10:
-        log.debug("Entered File Close Check")
-        last_checked = time.time()
-        for fn in list(video_writers.keys()):
-            vw, last_used = video_writers[fn]
-            diff = (time.time() - last_used)
-            log.debug("last_used: %s diff: %s fn: %s ", last_used, diff, fn)
-            if diff > (video_record_period * 2):
-                log.debug("Closing: {}".format(fn))
-                vw.release()
-                del video_writers[fn]
-                log.debug("Closed: {}".format(fn))
+    _video_writers[fn] = (vw, time.time())
+    _close_stale_writers()
 
 
-# def write_loop(R):
-
-#     print("Beginning to Write Videos")
-
-#     while True:
-#         key = R.lpop('framekeys')
-#         l = R.llen('framekeys')
-#         log.debug("len: %s, key: %s", l, key)
-#         if key is None:
-#             # log.debug("key is None")
-#             continue
-#         # skip if we are too behind:
-#         if l > 1000:
-#             R.delete(key)
-#             continue
-
-#         v = R.hgetall(key)
-#         # log.debug("v: %s", v)
-#         R.delete(key)
-#         t = float(v[b'time'])
-#         cam_id = v[b'camera_id'].decode('utf-8')
-#         # img_str = v[b'image_string']
-#         # image_from_str = np.load(io.BytesIO(img_str))
-#         image_data = v[b'image_data']
-#         image_shape_x = v[b'image_shape_x']
-#         image_shape_y = v[b'image_shape_y']
-#         image_shape_z = v[b'image_shape_z']
-#         image_dtype = v[b'image_dtype']
-#         image = np.frombuffer(image_data, dtype=image_dtype)
-#         image.shape = (int(image_shape_x), int(image_shape_y),
-#                        int(image_shape_z))
-#         # assert (image_from_str.mean() == image.mean())
-#         filename = v[b'filename'].decode('utf-8')
-#         record(t, cam_id, image, filename)
-#         # log.debug("t: %s", t)
-
-# def main():
-#     import redis
-#     R = redis.Redis()
-#     write_loop(R)
-
-# if __name__ == '__main__':
-#     main()
+def _close_stale_writers():
+    """Release writers that have not received frames recently."""
+    global _last_checked
+    if (time.time() - _last_checked) < 10:
+        return
+    _last_checked = time.time()
+    period = _get_config().video.video_seconds_per_file
+    for fn in list(_video_writers):
+        vw, last_used = _video_writers[fn]
+        if (time.time() - last_used) > (period * 2):
+            log.info("Closing stale video writer: %s", fn)
+            vw.release()
+            del _video_writers[fn]
