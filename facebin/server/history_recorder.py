@@ -1,44 +1,49 @@
-import os
-import cv2
-import random
-import time
+"""History recorder worker process.
+
+Consumes recognized faces from the Redis ``HISTORY_QUEUE``, merges
+consecutive appearances of the same person (by person id, or by face
+encoding similarity for unknown persons), and periodically writes the
+aggregated appearance records — with face and camera snapshots — to the
+SQLite history table.
+"""
+
 import datetime as dt
-import configparser as cp
+import os
 import sys
+import time
 
-from PySide2 import QtCore as qtc
-from PySide2 import QtWidgets as qtw
-from PySide2 import QtGui as qtg
+import cv2
+import numpy as np
 
-import database_api as db
-from dataset_manager_v3 import FEATURE_SIZE
-import redis_queue_utils as rqu
-import redis
-
-from utils import *
+from facebin.config import load_config
+from . import database_api as db
+from . import redis_queue_utils as rqu
+from .utils import init_logging
 
 log = init_logging()
 
+# Feature vector size of the face encoder (VGGFace fc7 layer). Kept here so
+# this module does not import the TensorFlow-based dataset manager.
+FEATURE_SIZE = 4096
 
-class VideoHistoryRecorder(qtc.QObject):
+
+class VideoHistoryRecorder:
     """Records the history data for the face recognition system
 
     Args:
 
     encoding_delta_limit (float): The similarity metric limit to determine
-    whether two consecutive face images are the same. 
+    whether two consecutive face images are the same.
 
     """
 
-    def __init__(self, encoding_delta_limit=500):
-        cfg = cp.ConfigParser()
-        cfg.read("facebin.ini")
+    def __init__(self, encoding_delta_limit=500, config=None):
+        if config is None:
+            config = load_config()
 
-        self.record_dir = os.path.expandvars(
-            cfg['history']['image_record_dir'])
-        if not os.path.exists(self.record_dir):
-            os.makedirs(self.record_dir)
-        self.record_period = int(cfg['history']['image_record_period'])
+        self.record_dir = config.history.resolved_dir()
+        os.makedirs(self.record_dir, exist_ok=True)
+        self.record_period = config.history.image_record_period
 
         self.period_begin = int(time.time())
         self.current_records = []
@@ -50,28 +55,6 @@ class VideoHistoryRecorder(qtc.QObject):
 
         self._db_write_timeout = 30
         self._last_db_write = time.time()
-
-    def record_to_database(self, index):
-        # Get data
-
-        r = self.current_records[i]
-        del self.current_records[i]
-
-        log.debug("the_data: %s", the_data)
-
-        # Save images
-        tstr = dt.datetime.fromtimestamp(t).strftime("%F-%H-%M-%S-%f")
-        face_image_filename = "{}/face-{}-{}-{}.png".format(
-            self.record_dir, r["person_id"], r["cam_id"], tstr)
-        camera_image_filename = "{}/cam_img-{}-{}-{}.png".format(
-            self.record_dir, cam_id, person_id, tstr)
-
-        cv2.imwrite(face_image_filename, r["face_image"])
-        cv2.imwrite(camera_image_filename, r["image"])
-        # Save DB
-        res = db.record_history_data(cam_id, person_id, t,
-                                     camera_image_filename,
-                                     face_image_filename, None)
 
     # def record(self,
     #            t,
@@ -287,7 +270,7 @@ class VideoHistoryRecorder(qtc.QObject):
             pc_key = self._camera_person_id_k(face_record)
             self._record_person[pc_key] = face_record
         log.debug("record_key: %s", record_key) 
-        r_res = rqu.R.hmset(record_key, face_record)
+        r_res = rqu.R.hset(record_key, mapping=face_record)
         log.debug("r_res: %s", r_res) 
         log.debug("R.zcount(rqu.HISTORY_RECORDING_QUEUE): %s", rqu.R.zcount(rqu.HISTORY_RECORDING_QUEUE, 0, "inf"))
         r_res = rqu.R.zadd(rqu.HISTORY_RECORDING_QUEUE, {record_key: time.time()})
@@ -328,7 +311,7 @@ image is larger) face image."""
             current_record['face_i'] = new_record['face_i']
 
         log.debug("record_key: %s", record_key) 
-        r_res = rqu.R.hmset(record_key, current_record)
+        r_res = rqu.R.hset(record_key, mapping=current_record)
         log.debug("r_res: %s", r_res) 
         log.debug("R.zcount(rqu.HISTORY_RECORDING_QUEUE): %s", rqu.R.zcount(rqu.HISTORY_RECORDING_QUEUE, 0, "inf"))
         r_res = rqu.R.zadd(rqu.HISTORY_RECORDING_QUEUE, {record_key: time.time()})
@@ -396,7 +379,7 @@ image is larger) face image."""
             rec = new_record_encoding[k]
             new_current_encodings[i] = self.current_encodings[rec['enc_index']]
             rec['enc_index'] = i
-            rqu.R.hmset(rec['record_key'], {'enc_index': i})
+            rqu.R.hset(rec['record_key'], mapping={'enc_index': i})
 
 
         updated_new_record_encoding = {}
@@ -408,33 +391,33 @@ image is larger) face image."""
         self._record_encoding = updated_new_record_encoding
 
 
-VHR = VideoHistoryRecorder()
 VIDEO_RECORD_TIMEOUT = 3600
 
 
-def record_loop():
+def record_loop(config=None):
+    """Worker entry point: aggregate recognized faces into history records."""
+    if config is None:
+        config = load_config()
+    rqu.configure(config.redis)
+    db.configure(config)
+
     outfile = open("/tmp/facebin-history-out-pid-{}.txt".format(os.getpid()),
                    "a")
     sys.stdout = outfile
     sys.stderr = outfile
+    recorder = VideoHistoryRecorder(config=config)
     input_queue = rqu.HISTORY_QUEUE
-    output_queue = rqu.HISTORY_RECORDING_QUEUE
     R = rqu.R
     while True:
-        log.debug("alive: %s", time.time()) 
         key, score = rqu.get_next_key(input_queue, delete=True)
         if key is None:
-            log.debug("key: %s", key) 
             time.sleep(0.1)
             continue
-        log.debug("alive: %s", time.time()) 
         fields = [f.decode("utf-8") for f in R.hkeys(key)]
-        log.debug("fields: %s", fields)
         for face_i in range(0, 10):
             k = rqu.face_image_shape_x_k(face_i)
             if k in fields:
-                log.debug("Found %s", k)
-                VHR.insert_update_records(key, score, face_i)
+                recorder.insert_update_records(key, score, face_i)
             else:
                 break
         log.debug("alive: %s", time.time()) 

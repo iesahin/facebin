@@ -1,12 +1,18 @@
-FROM nvidia/cuda:10.2-base
+# Headless Facebin recognition server.
+# Build:  docker build -t facebin .
+# Run:    docker run --gpus all -v $HOME/facebin-data:/data \
+#             -v $PWD/facebin.toml:/etc/facebin/facebin.toml facebin
+FROM python:3.12-slim
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y python3 python3-pip redis
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        redis-server ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . /root/facebin
+WORKDIR /opt/facebin
+COPY . .
 
-RUN pip3 install -r /root/facebin/init/requirements-gpu.txt
+RUN pip install --no-cache-dir ".[ml]"
 
-CMD ['/root/facebin/facebin-server -H 0 -R 1 -C 0']
+ENV FACEBIN_CONFIG=/etc/facebin/facebin.toml
 
-
-
+CMD ["facebin", "server"]

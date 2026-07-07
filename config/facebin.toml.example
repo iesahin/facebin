@@ -1,0 +1,50 @@
+# Facebin configuration.
+# Location: ./facebin.toml, ~/.config/facebin/facebin.toml, or set
+# the FACEBIN_CONFIG environment variable. Paths may use ~ and $VARS.
+
+[redis]
+host = "localhost"
+port = 6379
+db = 0
+# Start a local redis-server automatically when it is not reachable.
+autostart = true
+
+[database]
+path = "~/facebin-data/facebin.db"
+
+[server]
+# Number of face-recognition worker processes per camera.
+recognizers_per_camera = 1
+# Number of history-recorder processes.
+history_recorders = 1
+# Seconds between worker-process health checks.
+health_check_interval = 1.0
+# Clear Redis queues when the server starts.
+flush_redis_on_start = true
+
+[history]
+image_record_dir = "~/facebin-data/image-store"
+# Group appearances of the same person within this many seconds.
+image_record_period = 10
+
+[video]
+video_record_dir = "~/facebin-data/video-store"
+video_seconds_per_file = 600
+
+[models]
+dir = "~/facebin-data/models"
+detection_model = "frozen_inference_graph_face.pb"
+detection_labels = "face_label_map.pbtxt"
+
+[dataset]
+dir = "~/facebin-data/dataset-images/user"
+
+# One [[camera]] block per camera. `device` may be a local video device,
+# an RTSP URL, or a video file. `command` optionally starts a helper
+# process (e.g. an ffmpeg relay) before reading from the device.
+[[camera]]
+id = "camera1"
+name = "Default Camera"
+device = "/dev/video0"
+command = ""
+fps = 25

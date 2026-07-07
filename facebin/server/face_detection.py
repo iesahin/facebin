@@ -1,31 +1,73 @@
-import cv2
-import dlib
-import numpy as np
-from . import utils
-import os
-import time
+"""Face detection backends.
 
-import sys
+Provides several interchangeable detectors:
 
-import tensorflow as tf
-from ..models import label_map_util
+- :class:`FaceDetectorTensorflow`: an SSD/MobileNet frozen graph (the
+  default in production).  Model files are configured in the ``[models]``
+  section of ``facebin.toml``.
+- :class:`FaceDetectorHaar`: OpenCV Haar cascades (fast, less accurate).
+- :class:`FaceDetectorDlib` / :class:`FaceDetectorDlibCNN`: dlib detectors.
 
-import redis
-
-from . import redis_queue_utils as rqu
+Requires the optional ``ml`` dependencies (``pip install 'facebin[ml]'``).
+"""
 
 import logging
+import os
+
+import cv2
+import numpy as np
+
+from facebin.config import load_config
+from facebin.errors import DependencyError, ModelFileError
+from . import utils
+from . import redis_queue_utils as rqu
+
+try:
+    import tensorflow.compat.v1 as tf
+    tf.disable_v2_behavior()
+except ImportError:
+    try:
+        import tensorflow as tf
+    except ImportError as e:
+        raise DependencyError(
+            "Face detection requires TensorFlow, which is not installed.",
+            hint="Install the machine-learning dependencies with "
+            "`pip install 'facebin[ml]'`.") from e
+
+try:
+    import dlib
+except ImportError:
+    dlib = None
+
+from ..models import label_map_util
 
 log = utils.init_logging()
 
 
+def _require_dlib():
+    if dlib is None:
+        raise DependencyError(
+            "This detector requires dlib, which is not installed.",
+            hint="Install it with `pip install dlib` (needs CMake and a "
+            "C++ compiler) or use FaceDetectorTensorflow instead.")
+
+
 class FaceDetectorTensorflow:
-    def __init__(self):
+    def __init__(self, config=None):
+        if config is None:
+            config = load_config()
         self.DETECTION_THRESHOLD = 0.6
-        self.PATH_TO_MODEL = "./frozen_inference_graph_face.pb"
-        self.PATH_TO_LABELS = './face_label_map.pbtxt'
+        self.PATH_TO_MODEL = config.models.detection_model_path()
+        self.PATH_TO_LABELS = config.models.detection_labels_path()
         self.NUM_CLASSES = 2
         self.TARGET_WIDTH = 480
+        for path, kind in ((self.PATH_TO_MODEL, "detection model"),
+                           (self.PATH_TO_LABELS, "label map")):
+            if not os.path.exists(path):
+                raise ModelFileError(
+                    "The face {} '{}' does not exist.".format(kind, path),
+                    hint="Download the model files into the [models] dir "
+                    "configured in facebin.toml (see docs/CONFIGURATION.md).")
         self.label_map = label_map_util.load_labelmap(self.PATH_TO_LABELS)
         self.categories = label_map_util.convert_label_map_to_categories(
             self.label_map,
@@ -120,7 +162,7 @@ class FaceDetectorTensorflow:
         log.debug("result_boxes_raw.shape: %s", result_boxes_raw.shape)
         log.debug("result_boxes_raw: %s", result_boxes_raw)
 
-        result_boxes = np.zeros(shape=result_boxes_raw.shape, dtype=np.int)
+        result_boxes = np.zeros(shape=result_boxes_raw.shape, dtype=np.int64)
         # be careful about x, y!
         xs, ys, cs = image.shape
         xmin, ymin, xmax, ymax = (result_boxes_raw[:, 0],
@@ -142,7 +184,7 @@ class FaceDetectorTensorflow:
         x[x < 0] = 0
         y[y < 0] = 0
 
-        result_boxes = np.empty(shape=result_boxes.shape, dtype=np.int)
+        result_boxes = np.empty(shape=result_boxes.shape, dtype=np.int64)
         result_boxes[:, 0] = np.floor(x * xs)
         result_boxes[:, 1] = np.floor(y * ys)
         result_boxes[:, 2] = np.floor(w * xs)
@@ -180,6 +222,7 @@ class FaceDetectorHaar:
 
 class FaceDetectorDlib:
     def __init__(self):
+        _require_dlib()
         self.max_size_for_dlib = 360
         self.detector = dlib.get_frontal_face_detector()
 
@@ -206,7 +249,7 @@ class FaceDetectorDlib:
             w = d.right() * resize_ratio - x - 1
             h = d.bottom() * resize_ratio - y - 1
             faces.append((x, y, w, h))
-        return np.floor(np.array(faces)).astype(np.int)
+        return np.floor(np.array(faces)).astype(np.int64)
 
 
 class FaceDetectorDlibCNN:
@@ -217,8 +260,16 @@ From the initial tests, it doesn't bring much to the project.
     """
 
     def __init__(self):
+        _require_dlib()
         self.max_size_for_dlib = 360
         dlib_cnn_model = os.path.expandvars("mmod_human_face_detector.dat")
+        if not os.path.exists(dlib_cnn_model):
+            raise ModelFileError(
+                "The dlib CNN face model '{}' does not exist.".format(
+                    dlib_cnn_model),
+                hint="Download mmod_human_face_detector.dat from "
+                "http://dlib.net/files/ and place it in the working "
+                "directory.")
         self.detector = dlib.cnn_face_detection_model_v1(dlib_cnn_model)
 
     def detect_faces(self, image):
@@ -244,7 +295,7 @@ From the initial tests, it doesn't bring much to the project.
             w = d.rect.right() * resize_ratio - x - 1
             h = d.rect.bottom() * resize_ratio - y - 1
             faces.append((x, y, w, h))
-        return np.floor(np.array(faces)).astype(np.int)
+        return np.floor(np.array(faces)).astype(np.int64)
 
 
 def faces_from_image_v2(image: np.ndarray,

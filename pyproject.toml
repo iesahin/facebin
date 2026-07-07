@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "facebin"
+version = "0.2.0"
+description = "Face detection and recognition for video streams and photos"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Emre Sahin", email = "i.emre.sahin@gmail.com" }]
+requires-python = ">=3.11"
+keywords = ["face-recognition", "face-detection", "video", "camera"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications :: Qt",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Multimedia :: Video :: Capture",
+]
+
+# Core dependencies: enough to run the supervisor, queues, database, and
+# camera readers. Face recognition needs the `ml` extra; the desktop GUI
+# needs the `ui` extra.
+dependencies = [
+    "numpy>=1.26",
+    "opencv-contrib-python-headless>=4.9",
+    "redis>=5.0",
+    "av>=12.0",
+]
+
+[project.optional-dependencies]
+ml = [
+    # The recognition pipeline was written against the TF1 graph API and
+    # runs on TF2 through tensorflow.compat.v1 (see facebin/server/
+    # face_detection.py). keras-vggface provides the VGGFace weights.
+    "tensorflow>=2.16",
+    "scikit-learn>=1.4",
+    "scikit-image>=0.22",
+    "pandas>=2.1",
+    "pillow>=10.0",
+    "keras-vggface>=0.6",
+    # dlib is only needed for the alternative dlib-based detectors.
+    # It compiles from source: needs CMake and a C++ toolchain.
+    # "dlib>=19.24",
+]
+ui = [
+    "PySide6>=6.6",
+]
+dev = [
+    "pytest>=8.0",
+    "fakeredis>=2.21",
+]
+
+[project.scripts]
+facebin = "facebin.cli:main"
+
+[project.urls]
+Repository = "https://github.com/iesahin/facebin"
+
+[tool.setuptools.packages.find]
+include = ["facebin*"]
+
+[tool.setuptools.package-data]
+"facebin.resources" = ["*.png"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

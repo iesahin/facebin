@@ -1,60 +1,135 @@
+# Facebin
 
-This software is a Python Desktop Application and Server that uses Tensorflow, Redis, FFMPEG and such libraries to detect and recognize faces in video streams and photos. 
+Facebin is a desktop application and server that detects and recognizes
+faces in video streams and photos. It reads frames from one or more cameras
+(local devices, RTSP streams, or video files), finds faces with a
+TensorFlow detector, recognizes them with VGGFace embeddings, records every
+appearance to a SQLite database, and shows live annotated streams and an
+appearance history in a Qt GUI.
 
-# Todo
+## Quick start
 
-- [ ] ADD model downloads to `install.sh` 
-- [ ] COLLECT all model files to a `models` directory ignored by git. 
-- [ ] CREATE a server python file that runs only detection and recognition modules
+```sh
+# 1. Install (Python >= 3.11). Pick the extras you need:
+pip install -e ".[ml,ui,dev]"
 
-# Files
+# 2. Create a configuration file and adapt it to your cameras:
+facebin init-config
+$EDITOR facebin.toml
 
-`install.sh`: Install necessary packages and libraries on a Ubuntu 18.04 installation and creates virtual environment. 
+# 3. Verify the environment (Redis, cameras, model files):
+facebin check
 
-`facebin.sh`: Runs the desktop application by activating the environment and running python command. Keeps logs in `FACEBIN_DIR/logs/$(date)`
+# 4. Start everything (Redis if needed, all worker processes, and the GUI):
+facebin
+```
 
-`facebin_gui.py`: Creates the gui and runs the servers. Main entrance of the software. 
+`facebin` is a single executable that starts and supervises all processes.
+The subcommands:
 
-`camera_controller.py`: A class to manage cameras and start/stop them using `libav`
+| Command               | What it does                                                       |
+| --------------------- | ------------------------------------------------------------------ |
+| `facebin` / `facebin run` | Start Redis (when `autostart` is on), all worker processes, and the GUI |
+| `facebin run --no-gui`    | The same, without the GUI                                      |
+| `facebin server`      | Start only the headless worker processes                           |
+| `facebin gui`         | Start only the GUI (attach to a running server)                    |
+| `facebin init-config` | Write a commented default `facebin.toml`                           |
+| `facebin init-db`     | Create the SQLite schema and default admin user (idempotent)       |
+| `facebin check`       | Validate configuration, Redis connectivity, and referenced paths   |
 
-`camera_dialog.py`: A Qt dialog to control up to 4 cameras
+`python -m facebin` is equivalent to `facebin`.
 
-`camera_reader.py`: Uses `libav` to read frames from cameras and puts them to Redis server in localhost
+## Installation details
 
-`database_api.py`: Provides database access functions
+The dependencies are split so that each deployment installs only what it
+needs:
 
-`dataset_manager_v3.py`: Provides training dataset access functions. 
+- **Core** (always installed): `numpy`, `opencv-contrib-python-headless`,
+  `redis`, `av`. Enough for the supervisor, queues, database, and camera
+  readers.
+- **`ml` extra**: TensorFlow, scikit-learn, pandas, Pillow, and
+  `keras-vggface` — required for the face detection and recognition
+  workers.
+- **`ui` extra**: PySide6 for the desktop GUI (PySide2 is still supported
+  as a fallback at runtime).
+- **`dev` extra**: `pytest` and `fakeredis` for the test suite.
 
-`export.py`: Exports the dataset to image files to `~/facebin-artifacts/export-$(time.time)`
+You also need:
 
-`face_detection.py`: Contains Tensorflow and Haar based classes for face detection. Receives image files from Redis queue, runs face detection on them and stores there again. 
+- A **Redis server** (`apt install redis-server`). With
+  `autostart = true` in the config, `facebin run` starts one for you.
+- **Model files** for the TensorFlow face detector
+  (`frozen_inference_graph_face.pb` and `face_label_map.pbtxt`, from the
+  [tensorflow-face-detection](https://github.com/yeephycho/tensorflow-face-detection)
+  project), placed in the `[models]` directory configured in
+  `facebin.toml`.
+- **ffmpeg** if you use camera helper commands (e.g. RTSP-to-v4l2 relays)
+  or keyframe extraction.
 
-`facebin.db`: SQLite database that contains basic information about recognized persons and their images. Also some configuration is done here. 
+## Configuration
 
-`face_recognition_v6.py`: Receives faces from Redis, recognizes them using Tensorflow model and puts their information to redis
+All settings live in a single TOML file, looked up in this order:
 
-`redis_queue_utils.py`: Higher level functions to manage image queues in Redis. 
+1. `--config/-c` command line option
+2. the `FACEBIN_CONFIG` environment variable
+3. `./facebin.toml`
+4. `~/.config/facebin/facebin.toml`
 
-`requirements-gpu.txt`: Python pip requirements file for GPU based recognition libraries
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for every setting, and
+`facebin init-config` for a commented starter file. A minimal example:
 
-`requirements.txt`: Python pip requirements file for CPU based recognition libraries
+```toml
+[redis]
+autostart = true
 
-`show_image_dialog.py`: Simple QT dialog to show Numpy or QImage based images
+[[camera]]
+id = "camera1"
+name = "Entrance"
+device = "rtsp://user:password@192.168.1.65:554/live"
+fps = 25
+```
 
-`history_dialog.py`: Shows timestamp, person, image information for the recognized faces. It retrieves these from the database. 
+## Architecture
 
-`history_recorder.py`: One of the elements of server processes. Retrieves the recognized faces from Redis and records them to database. 
+Facebin runs as a set of cooperating processes connected by Redis queues:
+camera readers push frames, recognizer processes annotate them with
+detected/recognized faces, the GUI displays them, and history recorders
+aggregate appearances into the SQLite database. The `facebin` executable
+starts all of them and restarts any process that dies.
 
-`import.py`: Imports the initial dataset from a directory by creating necessary DatasetManager object and importing the information.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full picture,
+including the queue layout, the database schema, and the module map.
 
-`utils.py`: various utilities 
+## Development
 
-`person_dialog.py`: Shows information about a particular person.
+```sh
+pip install -e ".[dev]"
+python -m pytest        # no Redis, camera, TensorFlow, or Qt required
+```
 
-`video_recorder.py`: Records footage videos to a directory
+The test suite covers the configuration loader, the database layer, the
+Redis queue helpers (against `fakeredis`), the process supervisor (against
+dummy workers), and the CLI.
 
-`visualization_utils_color.py`: To draw on images 
+Repository layout:
 
-`watch-image-dir.sh`: Watches the changes to a directory and sends the new images using email
+| Path                | Contents                                              |
+| ------------------- | ----------------------------------------------------- |
+| `facebin/cli.py`    | The `facebin` executable                              |
+| `facebin/config.py` | TOML configuration loading and validation             |
+| `facebin/errors.py` | Exception hierarchy (`FacebinError` and subclasses)   |
+| `facebin/server/`   | Headless pipeline: supervisor, camera readers, detection, recognition, history, database |
+| `facebin/ui/`       | Qt GUI: main window, dialogs, Qt compatibility layer  |
+| `facebin/models/`   | Model directory helpers (`label_map_util`)            |
+| `tests/`            | Pytest suite                                          |
+| `init/`             | Requirements files and legacy install script          |
+| `legacy/`           | Old, unused module versions kept for reference        |
 
-`facebin_init.py`: It adds `CUDA` paths to `$PATH` and imports tensorflow afterwards. 
+## History
+
+Version 0.1.x used INI files, per-host config names, TensorFlow 1.x, and a
+zoo of shell scripts. Version 0.2.0 modernized the project: single TOML
+configuration, a single `facebin` executable, upgraded dependencies
+(TensorFlow 2 via `tf.compat.v1`, redis-py 5, PySide6, NumPy >= 1.26), a
+test suite, and meaningful error messages throughout. See
+[CHANGELOG.md](CHANGELOG.md).
