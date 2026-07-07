@@ -106,6 +106,16 @@ class DatasetConfig:
 
 
 @dataclass
+class ApiConfig:
+    """The HTTP API / mobile web app server."""
+    enabled: bool = False
+    host: str = "0.0.0.0"
+    port: int = 8420
+    # Seconds an authentication token stays valid.
+    session_ttl: int = 86400
+
+
+@dataclass
 class CameraConfig:
     id: str
     name: str = ""
@@ -123,6 +133,7 @@ class Config:
     video: VideoConfig = field(default_factory=VideoConfig)
     models: ModelsConfig = field(default_factory=ModelsConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
+    api: ApiConfig = field(default_factory=ApiConfig)
     cameras: List[CameraConfig] = field(default_factory=list)
     # Path the configuration was loaded from; None when defaults are used.
     source: Optional[str] = None
@@ -146,6 +157,7 @@ _SECTION_TYPES = {
     "video": VideoConfig,
     "models": ModelsConfig,
     "dataset": DatasetConfig,
+    "api": ApiConfig,
 }
 
 
@@ -218,6 +230,13 @@ def _validate(config: Config):
             "Redis port {} in {} is out of range.".format(
                 config.redis.port, src),
             hint="Use a TCP port between 1 and 65535 (default 6379).")
+    if not (0 < config.api.port < 65536):
+        raise ConfigError(
+            "API port {} in {} is out of range.".format(config.api.port, src),
+            hint="Use a TCP port between 1 and 65535 (default 8420).")
+    if config.api.session_ttl <= 0:
+        raise ConfigError(
+            "api.session_ttl must be > 0 in {}.".format(src))
     if config.server.recognizers_per_camera < 0:
         raise ConfigError(
             "server.recognizers_per_camera must be >= 0 in {}.".format(src))
@@ -361,6 +380,16 @@ detection_labels = "face_label_map.pbtxt"
 
 [dataset]
 dir = "~/facebin-data/dataset-images/user"
+
+[api]
+# HTTP API and mobile web app (see docs/MOBILE.md). When enabled,
+# `facebin run` / `facebin server` also start this server, and the web
+# app is reachable at http://<host>:<port>/ on your phone's browser.
+enabled = false
+host = "0.0.0.0"
+port = 8420
+# Seconds an authentication token stays valid.
+session_ttl = 86400
 
 # One [[camera]] block per camera. `device` may be a local video device,
 # an RTSP URL, or a video file. `command` optionally starts a helper

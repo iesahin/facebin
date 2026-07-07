@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101418">
+  <title>Facebin</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+  <!-- Login -->
+  <section id="login-view" class="view" hidden>
+    <div class="login-card">
+      <h1>Facebin</h1>
+      <p class="muted">Face recognition monitor</p>
+      <form id="login-form">
+        <label>Username
+          <input id="login-username" autocomplete="username" required>
+        </label>
+        <label>Password
+          <input id="login-password" type="password"
+                 autocomplete="current-password" required>
+        </label>
+        <button type="submit">Sign in</button>
+        <p id="login-error" class="error" hidden></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- App -->
+  <section id="app-view" class="view" hidden>
+    <header>
+      <h1 id="page-title">Live</h1>
+      <button id="logout-button" class="ghost" title="Sign out">Sign out</button>
+    </header>
+
+    <main>
+      <div id="tab-live" class="tab">
+        <div id="camera-list" class="camera-grid"></div>
+        <p id="live-empty" class="muted center" hidden>
+          No cameras are configured. Add [[camera]] blocks to facebin.toml
+          on the server.
+        </p>
+      </div>
+
+      <div id="tab-history" class="tab" hidden>
+        <div class="filter-row">
+          <select id="history-filter">
+            <option value="">Everyone</option>
+            <option value="unknown">Unknown only</option>
+          </select>
+          <button id="history-refresh" class="ghost">Refresh</button>
+        </div>
+        <ul id="history-list" class="record-list"></ul>
+        <p id="history-empty" class="muted center" hidden>No appearances recorded yet.</p>
+      </div>
+
+      <div id="tab-people" class="tab" hidden>
+        <ul id="person-list" class="record-list"></ul>
+        <p id="people-empty" class="muted center" hidden>No people in the dataset yet.</p>
+        <form id="person-form" class="card">
+          <h2>Add person</h2>
+          <label>Name <input id="person-name" required></label>
+          <label>Title <input id="person-title"></label>
+          <label>Notes <input id="person-notes"></label>
+          <button type="submit">Add</button>
+          <p id="person-error" class="error" hidden></p>
+        </form>
+      </div>
+
+      <div id="tab-status" class="tab" hidden>
+        <div id="status-body" class="card mono"></div>
+      </div>
+    </main>
+
+    <nav>
+      <button data-tab="live" class="active">Live</button>
+      <button data-tab="history">History</button>
+      <button data-tab="people">People</button>
+      <button data-tab="status">Status</button>
+    </nav>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

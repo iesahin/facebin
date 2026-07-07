@@ -22,7 +22,8 @@ def test_version(capsys):
     with pytest.raises(SystemExit) as e:
         main(["--version"])
     assert e.value.code == 0
-    assert "facebin 0.2" in capsys.readouterr().out
+    from facebin import __version__
+    assert "facebin {}".format(__version__) in capsys.readouterr().out
 
 
 def test_help_lists_commands(capsys):

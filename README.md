@@ -33,6 +33,7 @@ The subcommands:
 | `facebin run --no-gui`    | The same, without the GUI                                      |
 | `facebin server`      | Start only the headless worker processes                           |
 | `facebin gui`         | Start only the GUI (attach to a running server)                    |
+| `facebin api`         | Start only the HTTP API / mobile web app server                    |
 | `facebin init-config` | Write a commented default `facebin.toml`                           |
 | `facebin init-db`     | Create the SQLite schema and default admin user (idempotent)       |
 | `facebin check`       | Validate configuration, Redis connectivity, and referenced paths   |
@@ -52,6 +53,8 @@ needs:
   workers.
 - **`ui` extra**: PySide6 for the desktop GUI (PySide2 is still supported
   as a fallback at runtime).
+- **`api` extra**: FastAPI and uvicorn for the HTTP API and the mobile
+  web app (see [docs/MOBILE.md](docs/MOBILE.md)).
 - **`dev` extra**: `pytest` and `fakeredis` for the test suite.
 
 You also need:
@@ -89,6 +92,13 @@ device = "rtsp://user:password@192.168.1.65:554/live"
 fps = 25
 ```
 
+## Using Facebin from your phone
+
+Enable the `[api]` section in `facebin.toml` and install the `api` extra;
+`facebin run` then also serves a mobile web app (installable as a PWA on
+Android) with live camera streams, appearance history, and people
+management. See [docs/MOBILE.md](docs/MOBILE.md).
+
 ## Architecture
 
 Facebin runs as a set of cooperating processes connected by Redis queues:
@@ -119,6 +129,7 @@ Repository layout:
 | `facebin/config.py` | TOML configuration loading and validation             |
 | `facebin/errors.py` | Exception hierarchy (`FacebinError` and subclasses)   |
 | `facebin/server/`   | Headless pipeline: supervisor, camera readers, detection, recognition, history, database |
+| `facebin/api/`      | HTTP API (FastAPI) and the mobile web app (PWA)       |
 | `facebin/ui/`       | Qt GUI: main window, dialogs, Qt compatibility layer  |
 | `facebin/models/`   | Model directory helpers (`label_map_util`)            |
 | `tests/`            | Pytest suite                                          |

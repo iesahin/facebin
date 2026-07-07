@@ -72,6 +72,18 @@ project into `dir`. `facebin check` verifies they exist.
 | ----- | ---------------------------------------- | ------------------------------------------ |
 | `dir` | `"~/facebin-data/dataset-images/user"`   | Root of the training images per person     |
 
+## `[api]`
+
+The HTTP API and mobile web app (see [MOBILE.md](MOBILE.md)); requires the
+`api` dependency extra.
+
+| Key           | Default     | Description                                                       |
+| ------------- | ----------- | ----------------------------------------------------------------- |
+| `enabled`     | `false`     | Start the API server as part of `facebin run` / `facebin server`  |
+| `host`        | `"0.0.0.0"` | Listen address                                                    |
+| `port`        | `8420`      | Listen port (1–65535)                                             |
+| `session_ttl` | `86400`     | Seconds a login token stays valid (> 0)                           |
+
 ## `[[camera]]` (repeatable)
 
 One block per camera. `id` and `device` are required; ids must be unique.

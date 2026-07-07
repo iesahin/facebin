@@ -50,6 +50,11 @@ def _default_history_target():
     return history_recorder.record_loop
 
 
+def _default_api_target():
+    from facebin.api.server import api_loop
+    return api_loop
+
+
 class FacebinServer:
     """Starts and supervises all Facebin worker processes.
 
@@ -66,15 +71,18 @@ class FacebinServer:
                  config: Config = None,
                  camera_reader_target=None,
                  recognizer_target=None,
-                 history_target=None):
+                 history_target=None,
+                 api_target=None):
         self.config = config if config is not None else load_config()
         self._camera_reader_target = camera_reader_target
         self._recognizer_target = recognizer_target
         self._history_target = history_target
+        self._api_target = api_target
 
         self.camera_reader_processes = {}
         self.recognizer_processes = {}
         self.history_processes = {}
+        self.api_processes = {}
         self.heartbeat_timer = None
         self._running = False
 
@@ -96,6 +104,11 @@ class FacebinServer:
         if self._history_target is None:
             self._history_target = _default_history_target()
         return self._history_target
+
+    def api_target(self):
+        if self._api_target is None:
+            self._api_target = _default_api_target()
+        return self._api_target
 
     # --- Process spawning --------------------------------------------------
 
@@ -127,6 +140,16 @@ class FacebinServer:
         log.info("Started history recorder %s (pid %s)", index, p.pid)
         return p
 
+    def _spawn_api_server(self):
+        p = mp.Process(target=self.api_target(),
+                       args=(self.config, ),
+                       name="facebin-api",
+                       daemon=True)
+        p.start()
+        log.info("Started API server on %s:%s (pid %s)",
+                 self.config.api.host, self.config.api.port, p.pid)
+        return p
+
     # --- Lifecycle ----------------------------------------------------------
 
     def start(self):
@@ -154,6 +177,9 @@ class FacebinServer:
         for k in range(self.config.server.history_recorders):
             self.history_processes[k] = self._spawn_history_recorder(k)
 
+        if self.config.api.enabled:
+            self.api_processes["api"] = self._spawn_api_server()
+
         self.heartbeat_timer = RepeatTimer(
             self.config.server.health_check_interval,
             self.check_process_health)
@@ -171,7 +197,8 @@ class FacebinServer:
             self.heartbeat_timer.cancel()
             self.heartbeat_timer = None
         for group in (self.camera_reader_processes,
-                      self.recognizer_processes, self.history_processes):
+                      self.recognizer_processes, self.history_processes,
+                      self.api_processes):
             for key, proc in group.items():
                 if proc.is_alive():
                     log.info("Terminating %s (pid %s)", proc.name, proc.pid)
@@ -200,8 +227,17 @@ class FacebinServer:
             self.check_camera_processes()
             self.check_history_processes()
             self.check_recognizer_processes()
+            self.check_api_processes()
         except Exception:
             log.exception("Health check failed")
+
+    def check_api_processes(self):
+        for key, proc in list(self.api_processes.items()):
+            if not proc.is_alive():
+                log.warning(
+                    "API server (pid %s) died with exit code %s; "
+                    "restarting it.", proc.pid, proc.exitcode)
+                self.api_processes[key] = self._spawn_api_server()
 
     def check_camera_processes(self, force_restart=False):
         for cpk, proc in list(self.camera_reader_processes.items()):
